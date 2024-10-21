@@ -13,5 +13,24 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Build
-        run: go build -v ./...
+      - run: mkdir -p dist/
+
+      - name: Build linux-amd64
+        run: |
+          go build -o dist/systemd-age-creds-amd64
+        env:
+          GOOS: linux
+          GOARCH: amd64
+
+      - name: Build linux-arm64
+        run: |
+          go build -o dist/systemd-age-creds-arm64
+        env:
+          GOOS: linux
+          GOARCH: arm64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: systemd-age-creds
+          path: dist/
