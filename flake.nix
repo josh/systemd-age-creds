@@ -26,6 +26,7 @@
           system,
           pkgs,
           lib,
+          ...
         }:
         let
           cfg = config.systemd-age-creds;
