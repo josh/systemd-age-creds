@@ -40,6 +40,12 @@
               defaultText = lib.literalExpression "pkgs.systemd-age-creds";
               description = "The package to use for systemd-age-creds.";
             };
+
+            socket = lib.mkOption {
+              type = lib.types.path;
+              default = "/run/age-creds.sock";
+              description = "The path to the age credentials unix socket.";
+            };
           };
 
           config = lib.mkIf cfg.enable {
@@ -48,7 +54,7 @@
               wantedBy = [ "sockets.target" ];
 
               socketConfig = {
-                ListenStream = "/run/age-creds.socket";
+                ListenStream = cfg.socket;
                 SocketMode = "0600";
                 Service = "age-creds.service";
               };
@@ -73,18 +79,21 @@
         {
           x86_64-linux.nixos = pkgs.testers.runNixOSTest {
             name = "nixos";
-            nodes.machine = {
-              imports = [ self.nixosModules.default ];
-              systemd-age-creds.enable = true;
-              systemd.services.age-creds-test = {
-                wantedBy = [ "multi-user.target" ];
-                serviceConfig = {
-                  RemainAfterExit = "yes";
-                  LoadCredential = "foo:/run/age-creds.socket";
-                  ExecStart = "${pkgs.coreutils}/bin/cp %d/foo /root/foo";
+            nodes.machine = (
+              { config, ... }:
+              {
+                imports = [ self.nixosModules.default ];
+                systemd-age-creds.enable = true;
+                systemd.services.age-creds-test = {
+                  wantedBy = [ "multi-user.target" ];
+                  serviceConfig = {
+                    RemainAfterExit = "yes";
+                    LoadCredential = "foo:${config.systemd-age-creds.socket}";
+                    ExecStart = "${pkgs.coreutils}/bin/cp %d/foo /root/foo";
+                  };
                 };
-              };
-            };
+              }
+            );
             testScript = ''
               machine.wait_for_unit("age-creds-test.service");
               machine.succeed("test -f /root/foo")
