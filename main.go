@@ -12,15 +12,7 @@ import (
 )
 
 func main() {
-	listeners, err := Listeners()
-	if err != nil {
-		panic(err)
-	}
-
-	if len(listeners) != 1 {
-		panic("Unexpected number of socket activation fds")
-	}
-	ln := listeners[0]
+	ln := ActivationListener()
 
 	conn, err := ln.Accept()
 	if err != nil {
@@ -62,48 +54,44 @@ func parsePeerName(s string) (string, string, error) {
 	return matches[1], matches[2], nil
 }
 
-func Listeners() ([]net.Listener, error) {
-	files := Files()
-	listeners := make([]net.Listener, len(files))
-
-	for i, f := range files {
-		if pc, err := net.FileListener(f); err == nil {
-			listeners[i] = pc
-			f.Close()
-		}
-	}
-	return listeners, nil
-}
-
-func Files() []*os.File {
+func ActivationListener() net.Listener {
 	defer os.Unsetenv("LISTEN_PID")
 	defer os.Unsetenv("LISTEN_FDS")
 	defer os.Unsetenv("LISTEN_FDNAMES")
 
 	pid, err := strconv.Atoi(os.Getenv("LISTEN_PID"))
 	if err != nil || pid != os.Getpid() {
-		return nil
+		panic("LISTEN_PID for someone else")
 	}
 
 	nfds, err := strconv.Atoi(os.Getenv("LISTEN_FDS"))
 	if err != nil || nfds == 0 {
-		return nil
+		panic("LISTEN_FDS not set")
 	}
 
 	names := strings.Split(os.Getenv("LISTEN_FDNAMES"), ":")
-
-	const listenFdsStart = 3
-
-	files := make([]*os.File, 0, nfds)
-	for fd := listenFdsStart; fd < listenFdsStart+nfds; fd++ {
-		syscall.CloseOnExec(fd)
-		name := "LISTEN_FD_" + strconv.Itoa(fd)
-		offset := fd - listenFdsStart
-		if offset < len(names) && len(names[offset]) > 0 {
-			name = names[offset]
-		}
-		files = append(files, os.NewFile(uintptr(fd), name))
+	if len(names) != nfds {
+		panic("LISTEN_FDNAMES count should match LISTEN_FDS")
 	}
 
-	return files
+	listeners := make([]net.Listener, nfds)
+
+	for i := 0; i < nfds; i++ {
+		fd := i + 3
+		syscall.CloseOnExec(fd)
+
+		f := os.NewFile(uintptr(fd), names[i])
+		pc, err := net.FileListener(f)
+		if err != nil {
+			panic(err)
+		}
+
+		listeners[i] = pc
+		f.Close()
+	}
+
+	if len(listeners) != 1 {
+		panic("Unexpected number of socket activation fds")
+	}
+	return listeners[0]
 }
