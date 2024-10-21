@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"regexp"
-
-	"github.com/coreos/go-systemd/v22/activation"
+	"strconv"
+	"strings"
+	"syscall"
 )
 
 func main() {
-	listeners, err := activation.Listeners()
+	listeners, err := Listeners()
 	if err != nil {
 		panic(err)
 	}
@@ -58,4 +60,50 @@ func parsePeerName(s string) (string, string, error) {
 		return "", "", fmt.Errorf("failed to parse peer name: %s", s)
 	}
 	return matches[1], matches[2], nil
+}
+
+func Listeners() ([]net.Listener, error) {
+	files := Files()
+	listeners := make([]net.Listener, len(files))
+
+	for i, f := range files {
+		if pc, err := net.FileListener(f); err == nil {
+			listeners[i] = pc
+			f.Close()
+		}
+	}
+	return listeners, nil
+}
+
+func Files() []*os.File {
+	defer os.Unsetenv("LISTEN_PID")
+	defer os.Unsetenv("LISTEN_FDS")
+	defer os.Unsetenv("LISTEN_FDNAMES")
+
+	pid, err := strconv.Atoi(os.Getenv("LISTEN_PID"))
+	if err != nil || pid != os.Getpid() {
+		return nil
+	}
+
+	nfds, err := strconv.Atoi(os.Getenv("LISTEN_FDS"))
+	if err != nil || nfds == 0 {
+		return nil
+	}
+
+	names := strings.Split(os.Getenv("LISTEN_FDNAMES"), ":")
+
+	const listenFdsStart = 3
+
+	files := make([]*os.File, 0, nfds)
+	for fd := listenFdsStart; fd < listenFdsStart+nfds; fd++ {
+		syscall.CloseOnExec(fd)
+		name := "LISTEN_FD_" + strconv.Itoa(fd)
+		offset := fd - listenFdsStart
+		if offset < len(names) && len(names[offset]) > 0 {
+			name = names[offset]
+		}
+		files = append(files, os.NewFile(uintptr(fd), name))
+	}
+
+	return files
 }
