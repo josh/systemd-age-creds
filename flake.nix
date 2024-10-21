@@ -65,5 +65,32 @@
           };
         }
       );
+
+      checks =
+        let
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        in
+        {
+          x86_64-linux.nixos = pkgs.testers.runNixOSTest {
+            name = "nixos";
+            nodes.machine = {
+              imports = [ self.nixosModules.default ];
+              systemd-age-creds.enable = true;
+              systemd.services.age-creds-test = {
+                wantedBy = [ "multi-user.target" ];
+                serviceConfig = {
+                  RemainAfterExit = "yes";
+                  LoadCredential = "foo:/run/age-creds.socket";
+                  ExecStart = "${pkgs.coreutils}/bin/cp %d/foo /root/foo";
+                };
+              };
+            };
+            testScript = ''
+              machine.wait_for_unit("age-creds-test.service");
+              machine.succeed("test -f /root/foo")
+              machine.succeed("test $(cat /root/foo) -eq 42")
+            '';
+          };
+        };
     };
 }
