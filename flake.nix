@@ -23,7 +23,6 @@
       nixosModules.default = (
         {
           config,
-          system,
           pkgs,
           lib,
           ...
@@ -37,7 +36,7 @@
 
             package = lib.mkOption {
               type = lib.types.package;
-              default = self.packages.${system}.default;
+              default = self.packages.${pkgs.system}.default;
               defaultText = lib.literalExpression "pkgs.systemd-age-creds";
               description = "The package to use for systemd-age-creds.";
             };
