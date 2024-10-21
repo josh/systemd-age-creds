@@ -3,7 +3,7 @@ buildGoModule {
   pname = "systemd-age-creds";
   version = "0.0.0";
   src = ./.;
-  vendorHash = "sha256-NAP44J1nSgjTMlcoT0eCFPEqFTbwmPGe2DqsRhrmAyU=";
+  vendorHash = null;
 
   meta = {
     description = "Load age encrypted credentials in systemd units";
