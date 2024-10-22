@@ -86,6 +86,9 @@ func ActivationListener() net.Listener {
 		syscall.CloseOnExec(fd)
 
 		f := os.NewFile(uintptr(fd), names[i])
+		if f == nil {
+			panic("bad file descriptor")
+		}
 		pc, err := net.FileListener(f)
 		if err != nil {
 			panic(err)
