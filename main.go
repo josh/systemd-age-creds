@@ -12,11 +12,9 @@ import (
 )
 
 func main() {
-	ln := activationListener()
-
-	_, ok := ln.Addr().(*net.UnixAddr)
-	if !ok {
-		panic("server must bind to a unix addr")
+	ln, err := activationListener()
+	if err != nil {
+		panic(err)
 	}
 
 	conn, err := ln.Accept()
@@ -59,47 +57,39 @@ func parsePeerName(s string) (string, string, error) {
 	return matches[1], matches[2], nil
 }
 
-func activationListener() net.Listener {
+func activationListener() (net.Listener, error) {
 	defer os.Unsetenv("LISTEN_PID")
 	defer os.Unsetenv("LISTEN_FDS")
 	defer os.Unsetenv("LISTEN_FDNAMES")
 
 	pid, err := strconv.Atoi(os.Getenv("LISTEN_PID"))
 	if err != nil || pid != os.Getpid() {
-		panic("LISTEN_PID for someone else")
+		return nil, fmt.Errorf("expected LISTEN_PID=%d, but was '%s'", os.Getpid(), os.Getenv("LISTEN_PID"))
 	}
 
 	nfds, err := strconv.Atoi(os.Getenv("LISTEN_FDS"))
-	if err != nil || nfds == 0 {
-		panic("LISTEN_FDS not set")
+	if err != nil || nfds != 1 {
+		return nil, fmt.Errorf("expected LISTEN_FDS=1, but was '%s'", os.Getenv("LISTEN_FDS"))
 	}
 
 	names := strings.Split(os.Getenv("LISTEN_FDNAMES"), ":")
-	if len(names) != nfds {
-		panic("LISTEN_FDNAMES count should match LISTEN_FDS")
+	if len(names) != 1 {
+		return nil, fmt.Errorf("expected LISTEN_FDNAMES to set 1 name, but was '%s'", os.Getenv("LISTEN_FDNAMES"))
+	}
+	name := names[0]
+
+	syscall.CloseOnExec(3)
+	f := os.NewFile(3, name)
+
+	ln, err := net.FileListener(f)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create listener: %w", err)
+	}
+	f.Close()
+
+	if _, ok := ln.Addr().(*net.UnixAddr); !ok {
+		return nil, fmt.Errorf("listener must be a unix socket")
 	}
 
-	listeners := make([]net.Listener, nfds)
-
-	for i := 0; i < nfds; i++ {
-		fd := i + 3
-		syscall.CloseOnExec(fd)
-
-		f := os.NewFile(uintptr(fd), names[i])
-		if f == nil {
-			panic("bad file descriptor")
-		}
-		pc, err := net.FileListener(f)
-		if err != nil {
-			panic(err)
-		}
-
-		listeners[i] = pc
-		f.Close()
-	}
-
-	if len(listeners) != 1 {
-		panic("Unexpected number of socket activation fds")
-	}
-	return listeners[0]
+	return ln, nil
 }
