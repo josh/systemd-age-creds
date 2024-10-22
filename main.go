@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -12,23 +13,38 @@ import (
 )
 
 func main() {
+	var accept bool
+	flag.BoolVar(&accept, "accept", false, "assume connection already accepted")
+	flag.Parse()
+
 	fmt.Printf("Starting systemd-age-creds\n")
 
-	ln, err := activationListener()
-	if err != nil {
-		panic(err)
-	}
-	defer ln.Close()
-
-	fmt.Printf("Listening on %s\n", ln.Addr())
-
-	for {
-		conn, err := ln.Accept()
+	if accept {
+		conn, err := activationConnection()
 		if err != nil {
 			log.Printf("Failed to accept connection: %v", err)
-			continue
+			return
 		}
-		go handleConnection(conn)
+		fmt.Printf("Connection already accepted\n")
+		handleConnection(conn)
+
+	} else {
+		ln, err := activationListener()
+		if err != nil {
+			panic(err)
+		}
+		defer ln.Close()
+
+		fmt.Printf("Listening on %s\n", ln.Addr())
+
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				log.Printf("Failed to accept connection: %v", err)
+				continue
+			}
+			go handleConnection(conn)
+		}
 	}
 }
 
@@ -64,7 +80,7 @@ func parsePeerName(s string) (string, string, error) {
 	return matches[1], matches[2], nil
 }
 
-func activationListener() (*net.UnixListener, error) {
+func activationFile() (*os.File, error) {
 	defer os.Unsetenv("LISTEN_PID")
 	defer os.Unsetenv("LISTEN_FDS_START")
 	defer os.Unsetenv("LISTEN_FDS")
@@ -106,6 +122,15 @@ func activationListener() (*net.UnixListener, error) {
 	syscall.CloseOnExec(fd)
 	f := os.NewFile(uintptr(fd), name)
 
+	return f, nil
+}
+
+func activationListener() (*net.UnixListener, error) {
+	f, err := activationFile()
+	if err != nil {
+		return nil, err
+	}
+
 	l, err := net.FileListener(f)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create listener: %w", err)
@@ -118,4 +143,23 @@ func activationListener() (*net.UnixListener, error) {
 	}
 
 	return unixListener, nil
+}
+
+func activationConnection() (*net.UnixConn, error) {
+	f, err := activationFile()
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := net.FileConn(f)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create connection: %w", err)
+	}
+
+	unixConn, ok := conn.(*net.UnixConn)
+	if !ok {
+		return nil, fmt.Errorf("must be a unix socket")
+	}
+
+	return unixConn, nil
 }

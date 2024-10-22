@@ -23,6 +23,11 @@ in
       default = "/run/age-creds.sock";
       description = "The path to the age credentials unix socket.";
     };
+
+    socketAccept = lib.mkEnableOption {
+      default = false;
+      description = "Enable accepting connections on the socket.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -33,17 +38,22 @@ in
       socketConfig = {
         ListenStream = cfg.socket;
         SocketMode = "0600";
+        Accept = if cfg.socketAccept then "yes" else "no";
         Service = "age-creds.service";
       };
     };
 
-    systemd.services.age-creds = {
-      description = "age credentials service";
-      requires = [ "age-creds.socket" ];
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = "${lib.getExe cfg.package}";
+    systemd.services.age-creds =
+      let
+        flags = lib.optionalString cfg.socketAccept "-accept";
+      in
+      {
+        description = "age credentials service";
+        requires = [ "age-creds.socket" ];
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${lib.getExe cfg.package} ${flags}";
+        };
       };
-    };
   };
 }
