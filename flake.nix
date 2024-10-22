@@ -34,6 +34,9 @@
           runNixOSTest = nixpkgs.legacyPackages.x86_64-linux.testers.runNixOSTest;
         in
         {
+          aarch64-linux.systemd-age-creds = self.packages.aarch64-linux.systemd-age-creds;
+          x86_64-linux.systemd-age-creds = self.packages.x86_64-linux.systemd-age-creds;
+
           x86_64-linux.nixos-system-unit = runNixOSTest {
             name = "nixos-system-unit";
             node.pkgsReadOnly = false;
