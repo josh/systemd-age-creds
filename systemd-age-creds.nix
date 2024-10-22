@@ -5,6 +5,8 @@ buildGoModule {
   src = ./.;
   vendorHash = null;
 
+  CGO_ENABLED = 0;
+
   meta = {
     description = "Load age encrypted credentials in systemd units";
     mainProgram = "systemd-age-creds";
