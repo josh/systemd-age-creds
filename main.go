@@ -57,14 +57,32 @@ func parsePeerName(s string) (string, string, error) {
 	return matches[1], matches[2], nil
 }
 
-func activationListener() (net.Listener, error) {
+func activationListener() (*net.UnixListener, error) {
 	defer os.Unsetenv("LISTEN_PID")
+	defer os.Unsetenv("LISTEN_FDS_START")
 	defer os.Unsetenv("LISTEN_FDS")
 	defer os.Unsetenv("LISTEN_FDNAMES")
+
+	if os.Getenv("LISTEN_PID") == "" {
+		return nil, fmt.Errorf("expected LISTEN_PID=%d", os.Getpid())
+	}
+	if os.Getenv("LISTEN_FDS") == "" {
+		return nil, fmt.Errorf("expected LISTEN_FDS=1")
+	}
+	if os.Getenv("LISTEN_FDNAMES") == "" {
+		return nil, fmt.Errorf("expected LISTEN_FDNAMES=foo.sock")
+	}
 
 	pid, err := strconv.Atoi(os.Getenv("LISTEN_PID"))
 	if err != nil || pid != os.Getpid() {
 		return nil, fmt.Errorf("expected LISTEN_PID=%d, but was '%s'", os.Getpid(), os.Getenv("LISTEN_PID"))
+	}
+
+	fd := 3
+	if os.Getenv("LISTEN_FDS_START") != "" {
+		if fd, err = strconv.Atoi(os.Getenv("LISTEN_FDS_START")); err != nil {
+			return nil, fmt.Errorf("expected LISTEN_FDS_START to be a int, but was '%s'", os.Getenv("LISTEN_FDS_START"))
+		}
 	}
 
 	nfds, err := strconv.Atoi(os.Getenv("LISTEN_FDS"))
@@ -78,18 +96,19 @@ func activationListener() (net.Listener, error) {
 	}
 	name := names[0]
 
-	syscall.CloseOnExec(3)
-	f := os.NewFile(3, name)
+	syscall.CloseOnExec(fd)
+	f := os.NewFile(uintptr(fd), name)
 
-	ln, err := net.FileListener(f)
+	l, err := net.FileListener(f)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create listener: %w", err)
 	}
 	f.Close()
 
-	if _, ok := ln.Addr().(*net.UnixAddr); !ok {
-		return nil, fmt.Errorf("listener must be a unix socket")
+	unixListener, ok := l.(*net.UnixListener)
+	if !ok {
+		return nil, fmt.Errorf("must be a unix socket")
 	}
 
-	return ln, nil
+	return unixListener, nil
 }
