@@ -2,7 +2,11 @@
 buildGoModule {
   pname = "systemd-age-creds";
   version = "0.0.0";
-  src = ../.;
+  src = lib.sources.sourceByRegex ./. [
+    ".*\.go$"
+    "^go.mod$"
+    "^go.sum$"
+  ];
   vendorHash = null;
 
   CGO_ENABLED = 0;
