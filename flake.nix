@@ -20,67 +20,25 @@
         x86_64-linux.default = self.packages.x86_64-linux.systemd-age-creds;
       };
 
-      nixosModules.default = (
-        {
-          config,
-          pkgs,
-          lib,
-          ...
-        }:
-        let
-          cfg = config.services.systemd-age-creds;
-        in
-        {
-          options.services.systemd-age-creds = {
-            enable = lib.mkEnableOption "Enable age credentials service";
+      overlays.default = final: prev: {
+        systemd-age-creds = final.callPackage ./nix/systemd-age-creds.nix { };
+      };
 
-            package = lib.mkOption {
-              type = lib.types.package;
-              default = self.packages.${pkgs.system}.default;
-              defaultText = lib.literalExpression "pkgs.systemd-age-creds";
-              description = "The package to use for systemd-age-creds.";
-            };
-
-            socket = lib.mkOption {
-              type = lib.types.path;
-              default = "/run/age-creds.sock";
-              description = "The path to the age credentials unix socket.";
-            };
-          };
-
-          config = lib.mkIf cfg.enable {
-            systemd.sockets.age-creds = {
-              description = "age credentials socket";
-              wantedBy = [ "sockets.target" ];
-
-              socketConfig = {
-                ListenStream = cfg.socket;
-                SocketMode = "0600";
-                Service = "age-creds.service";
-              };
-            };
-
-            systemd.services.age-creds = {
-              description = "age credentials service";
-              requires = [ "age-creds.socket" ];
-              serviceConfig = {
-                Type = "simple";
-                ExecStart = "${lib.getExe cfg.package}";
-              };
-            };
-          };
-        }
-      );
+      nixosModules.default = {
+        imports = [ ./nix/nixos.nix ];
+        nixpkgs.overlays = [ self.overlays.default ];
+      };
 
       checks =
         let
-          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          runNixOSTest = nixpkgs.legacyPackages.x86_64-linux.testers.runNixOSTest;
         in
         {
-          x86_64-linux.nixos-system-unit = pkgs.testers.runNixOSTest {
+          x86_64-linux.nixos-system-unit = runNixOSTest {
             name = "nixos-system-unit";
+            node.pkgsReadOnly = false;
             nodes.machine = (
-              { config, ... }:
+              { config, pkgs, ... }:
               {
                 imports = [ self.nixosModules.default ];
                 services.systemd-age-creds.enable = true;
