@@ -10,10 +10,10 @@
     {
       packages = {
         aarch64-linux.systemd-age-creds =
-          nixpkgs.legacyPackages.aarch64-linux.callPackage ./systemd-age-creds.nix
+          nixpkgs.legacyPackages.aarch64-linux.callPackage ./nix/systemd-age-creds.nix
             { };
         x86_64-linux.systemd-age-creds =
-          nixpkgs.legacyPackages.x86_64-linux.callPackage ./systemd-age-creds.nix
+          nixpkgs.legacyPackages.x86_64-linux.callPackage ./nix/systemd-age-creds.nix
             { };
 
         aarch64-linux.default = self.packages.aarch64-linux.systemd-age-creds;
