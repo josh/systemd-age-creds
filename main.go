@@ -14,10 +14,10 @@ import (
 func main() {
 	ln := activationListener()
 
-	// _, ok := ln.Addr().(*net.UnixAddr)
-	// if !ok {
-	// 	panic("server must bind to a unix addr")
-	// }
+	_, ok := ln.Addr().(*net.UnixAddr)
+	if !ok {
+		panic("server must bind to a unix addr")
+	}
 
 	conn, err := ln.Accept()
 	if err != nil {
