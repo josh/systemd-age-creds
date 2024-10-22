@@ -2,7 +2,7 @@
 buildGoModule {
   pname = "systemd-age-creds";
   version = "0.0.0";
-  src = ./.;
+  src = ../.;
   vendorHash = null;
 
   CGO_ENABLED = 0;
