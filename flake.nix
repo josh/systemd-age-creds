@@ -28,10 +28,10 @@
           ...
         }:
         let
-          cfg = config.systemd-age-creds;
+          cfg = config.services.systemd-age-creds;
         in
         {
-          options.systemd-age-creds = {
+          options.services.systemd-age-creds = {
             enable = lib.mkEnableOption "Enable age credentials service";
 
             package = lib.mkOption {
@@ -77,18 +77,18 @@
           pkgs = nixpkgs.legacyPackages.x86_64-linux;
         in
         {
-          x86_64-linux.nixos = pkgs.testers.runNixOSTest {
-            name = "nixos";
+          x86_64-linux.nixos-system-unit = pkgs.testers.runNixOSTest {
+            name = "nixos-system-unit";
             nodes.machine = (
               { config, ... }:
               {
                 imports = [ self.nixosModules.default ];
-                systemd-age-creds.enable = true;
+                services.systemd-age-creds.enable = true;
                 systemd.services.age-creds-test = {
                   wantedBy = [ "multi-user.target" ];
                   serviceConfig = {
                     RemainAfterExit = "yes";
-                    LoadCredential = "foo:${config.systemd-age-creds.socket}";
+                    LoadCredential = "foo:${config.services.systemd-age-creds.socket}";
                     ExecStart = "${pkgs.coreutils}/bin/cp %d/foo /root/foo";
                   };
                 };
