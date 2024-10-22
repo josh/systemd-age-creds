@@ -4,16 +4,22 @@ import (
 	"testing"
 )
 
-func TestParsePeerName(t *testing.T) {
-	// TODO: Get real example of peer name
-	unitName, credID, err := parsePeerName("@foo/unit/bar/baz")
+func TestParsePeerNameOk(t *testing.T) {
+	unit, cred, err := parsePeerName("@f4b4692a71d9438e/unit/age-creds-test.service/foo")
 	if err != nil {
 		t.Error(err)
 	}
-	if unitName != "bar" {
-		t.Errorf("unitName = %s; want bar", unitName)
+	if unit != "age-creds-test.service" {
+		t.Errorf("unit = %s; want age-creds-test.service", unit)
 	}
-	if credID != "baz" {
-		t.Errorf("credID = %s; want baz", credID)
+	if cred != "foo" {
+		t.Errorf("cred = %s; want foo", cred)
+	}
+}
+
+func TestParsePeerNameBlank(t *testing.T) {
+	_, _, err := parsePeerName("")
+	if err == nil {
+		t.Error("expected parse error")
 	}
 }
