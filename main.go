@@ -14,6 +14,11 @@ import (
 func main() {
 	ln := ActivationListener()
 
+	_, ok := ln.Addr().(*net.UnixAddr)
+	if !ok {
+		panic("server must bind to a unix addr")
+	}
+
 	conn, err := ln.Accept()
 	if err != nil {
 		panic(err)
@@ -27,7 +32,7 @@ func handleConnection(conn net.Conn) {
 
 	unixAddr, ok := conn.RemoteAddr().(*net.UnixAddr)
 	if !ok {
-		log.Printf("Unexpected remote address type: %T", conn.RemoteAddr())
+		log.Printf("client must be a unix addr")
 		return
 	}
 
