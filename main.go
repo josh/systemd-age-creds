@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	ln := ActivationListener()
+	ln := activationListener()
 
 	// _, ok := ln.Addr().(*net.UnixAddr)
 	// if !ok {
@@ -59,7 +59,7 @@ func parsePeerName(s string) (string, string, error) {
 	return matches[1], matches[2], nil
 }
 
-func ActivationListener() net.Listener {
+func activationListener() net.Listener {
 	defer os.Unsetenv("LISTEN_PID")
 	defer os.Unsetenv("LISTEN_FDS")
 	defer os.Unsetenv("LISTEN_FDNAMES")
