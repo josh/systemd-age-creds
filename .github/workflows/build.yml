@@ -13,6 +13,10 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Run tests
+        run: |
+          go test
+
       - run: mkdir -p dist/
 
       - name: Build linux-amd64
