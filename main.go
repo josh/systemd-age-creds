@@ -12,17 +12,24 @@ import (
 )
 
 func main() {
+	fmt.Printf("Starting systemd-age-creds\n")
+
 	ln, err := activationListener()
 	if err != nil {
 		panic(err)
 	}
+	defer ln.Close()
 
-	conn, err := ln.Accept()
-	if err != nil {
-		panic(err)
+	fmt.Printf("Listening on %s\n", ln.Addr())
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Printf("Failed to accept connection: %v", err)
+			continue
+		}
+		go handleConnection(conn)
 	}
-
-	handleConnection(conn)
 }
 
 func handleConnection(conn net.Conn) {
