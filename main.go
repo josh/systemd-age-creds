@@ -25,7 +25,6 @@ func main() {
 			log.Printf("Failed to accept connection: %v", err)
 			return
 		}
-		fmt.Printf("Connection already accepted\n")
 		handleConnection(conn)
 
 	} else {

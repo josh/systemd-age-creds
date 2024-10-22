@@ -38,6 +38,11 @@
         x86_64-linux.nixos-system-unit = callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix {
           inherit self;
         };
+        x86_64-linux.nixos-system-unit-accept =
+          callPackage.x86_64-linux ./nix/tests/nixos-system-unit-accept.nix
+            {
+              inherit self;
+            };
         x86_64-linux.nixos-system-unit-stress =
           callPackage.x86_64-linux ./nix/tests/nixos-system-unit-stress.nix
             {

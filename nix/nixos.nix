@@ -30,30 +30,32 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    systemd.sockets.age-creds = {
-      description = "age credentials socket";
-      wantedBy = [ "sockets.target" ];
+  config =
+    let
+      serviceName = if cfg.socketAccept then "age-creds@" else "age-creds";
+    in
+    lib.mkIf cfg.enable {
+      systemd.sockets.age-creds = {
+        description = "age credentials socket";
+        wantedBy = [ "sockets.target" ];
 
-      socketConfig = {
-        ListenStream = cfg.socket;
-        SocketMode = "0600";
-        Accept = if cfg.socketAccept then "yes" else "no";
-        Service = "age-creds.service";
-      };
-    };
-
-    systemd.services.age-creds =
-      let
-        flags = lib.optionalString cfg.socketAccept "-accept";
-      in
-      {
-        description = "age credentials service";
-        requires = [ "age-creds.socket" ];
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${lib.getExe cfg.package} ${flags}";
+        socketConfig = {
+          ListenStream = cfg.socket;
+          SocketMode = "0600";
+          Accept = if cfg.socketAccept then "yes" else "no";
         };
       };
-  };
+
+      systemd.services.${serviceName} =
+        let
+          flags = lib.optionalString cfg.socketAccept "-accept";
+        in
+        {
+          description = "age credentials service";
+          serviceConfig = {
+            Type = "simple";
+            ExecStart = "${lib.getExe cfg.package} ${flags}";
+          };
+        };
+    };
 }

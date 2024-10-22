@@ -4,7 +4,7 @@
   count ? 25,
 }:
 testers.runNixOSTest {
-  name = "nixos-system-unit";
+  name = "nixos-system-unit-stress";
 
   node.pkgsReadOnly = false;
 
