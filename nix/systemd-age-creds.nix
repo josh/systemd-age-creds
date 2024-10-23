@@ -2,7 +2,7 @@
 buildGoModule {
   pname = "systemd-age-creds";
   version = "0.0.0";
-  src = lib.sources.sourceByRegex ./. [
+  src = lib.sources.sourceByRegex ./.. [
     ".*\.go$"
     "^go.mod$"
     "^go.sum$"
