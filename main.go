@@ -13,8 +13,10 @@ import (
 )
 
 func main() {
+	defaultAccept := os.Getenv("LISTEN_FDNAMES") == "connection"
+
 	var accept bool
-	flag.BoolVar(&accept, "accept", false, "assume connection already accepted")
+	flag.BoolVar(&accept, "accept", defaultAccept, "assume connection already accepted")
 	flag.Parse()
 
 	fmt.Printf("Starting systemd-age-creds\n")

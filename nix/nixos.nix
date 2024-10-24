@@ -46,16 +46,12 @@ in
         };
       };
 
-      systemd.services.${serviceName} =
-        let
-          flags = lib.optionalString cfg.socketAccept "-accept";
-        in
-        {
-          description = "age credentials service";
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = "${lib.getExe cfg.package} ${flags}";
-          };
+      systemd.services.${serviceName} = {
+        description = "age credentials service";
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${lib.getExe cfg.package}";
         };
+      };
     };
 }
