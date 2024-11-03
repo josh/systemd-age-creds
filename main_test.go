@@ -45,7 +45,6 @@ func TestActivationListener(t *testing.T) {
 	t.Setenv("LISTEN_FDNAMES", "foo.sock")
 	t.Setenv("LISTEN_FDS_START", fmt.Sprintf("%d", f1.Fd()))
 	ln2, err := activationListener()
-
 	if err != nil {
 		t.Error(err)
 	}

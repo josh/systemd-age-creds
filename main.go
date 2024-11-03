@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -32,8 +33,7 @@ func main() {
 			log.Printf("Failed to accept connection: %v", err)
 			return
 		}
-		handleConnection(conn)
-
+		handleConnection(conn, directory)
 	} else {
 		ln, err := activationListener()
 		if err != nil {
@@ -49,12 +49,12 @@ func main() {
 				log.Printf("Failed to accept connection: %v", err)
 				continue
 			}
-			go handleConnection(conn)
+			go handleConnection(conn, directory)
 		}
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, directory string) {
 	defer conn.Close()
 
 	unixAddr, ok := conn.RemoteAddr().(*net.UnixAddr)
@@ -70,8 +70,16 @@ func handleConnection(conn net.Conn) {
 	}
 	log.Printf("%s requesting '%s' credential", unitName, credID)
 
-	// TODO: Decrypt actual secret
-	_, err = conn.Write([]byte("42\n"))
+	filename := fmt.Sprintf("%s.age", credID)
+	path := filepath.Join(directory, filename)
+	content, err := os.ReadFile(path)
+	if err != nil {
+		log.Printf("Failed to read credential file %s: %v", path, err)
+		return
+	}
+
+	// Write the content back to the connection
+	_, err = conn.Write(content)
 	if err != nil {
 		log.Printf("Failed to write credential: %v", err)
 		return
