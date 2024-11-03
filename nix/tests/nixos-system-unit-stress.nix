@@ -1,8 +1,17 @@
 {
   self,
+  runCommandLocal,
   testers,
   count ? 25,
 }:
+let
+  credstoreDir = runCommandLocal "credstore" { } ''
+    mkdir -p $out
+    for i in $(seq 1 ${builtins.toString count}); do
+      cp ${./credstore.encrypted/FOO.age} $out/FOO_$i.age
+    done
+  '';
+in
 testers.runNixOSTest {
   name = "nixos-system-unit-stress";
 
@@ -18,7 +27,7 @@ testers.runNixOSTest {
     {
       imports = [ self.nixosModules.default ];
       services.systemd-age-creds.enable = true;
-      services.systemd-age-creds.directory = ./credstore.encrypted;
+      services.systemd-age-creds.directory = credstoreDir;
       systemd.services.age-creds-test = {
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
