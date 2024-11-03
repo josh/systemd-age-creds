@@ -24,7 +24,7 @@ testers.runNixOSTest {
         serviceConfig = {
           RemainAfterExit = "yes";
           LoadCredential = lib.genList (
-            i: "foo${builtins.toString i}:${config.services.systemd-age-creds.socket}"
+            i: "foo-${builtins.toString (i + 1)}:${config.services.systemd-age-creds.socket}"
           ) count;
           ExecStart = "${pkgs.bash}/bin/bash -c '${pkgs.coreutils}/bin/cp -r %d/foo* /root/'";
         };
@@ -37,14 +37,14 @@ testers.runNixOSTest {
     print(machine.succeed("journalctl -u age-creds.service"))
     print(machine.succeed("journalctl -u age-creds-test.service"))
 
-    files = machine.succeed("ls /root/foo*").split("\n")
+    files = machine.succeed("ls /root").split("\n")
     expected_count = ${builtins.toString count}
     actual_count = len(files)
-    assert actual_count == expected_count, f"Expected {expected_count} files, got {actual_count}"
-    assert "/root/foo0" in files, "Expected file foo0"
-    assert f"/root/foo{expected_count - 1}" in files, f"Expected file foo{expected_count - 1}"
+    assert actual_count == expected_count, "Expected {expected_count} files, got {actual_count}: {files}"
+    assert "/root/foo-1" in files, "Expected file foo-1"
+    assert f"/root/foo-{expected_count}" in files, f"Expected file foo-{expected_count}"
 
-    contents = machine.succeed("cat /root/foo0")
-    assert contents == "42\n", f"Expected foo0 to equal '42', got '{contents}'"
+    contents = machine.succeed("cat /root/foo-1")
+    assert contents == "42\n", f"Expected foo-1 to equal '42', got '{contents}'"
   '';
 }
