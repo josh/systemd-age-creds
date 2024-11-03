@@ -33,9 +33,18 @@ testers.runNixOSTest {
 
   testScript = ''
     machine.wait_for_unit("age-creds-test.service");
-    machine.succeed("test -f /root/foo0")
-    machine.succeed("test -f /root/foo${builtins.toString (count - 1)}")
-    machine.succeed("test $(ls /root/foo* | wc -l) -eq ${builtins.toString count}")
-    machine.succeed("test $(cat /root/foo0) -eq 42")
+    print(machine.succeed("journalctl -u age-creds.socket"))
+    print(machine.succeed("journalctl -u age-creds.service"))
+    print(machine.succeed("journalctl -u age-creds-test.service"))
+
+    files = machine.succeed("ls /root/foo*").split("\n")
+    expected_count = ${builtins.toString count}
+    actual_count = len(files)
+    assert actual_count == expected_count, f"Expected {expected_count} files, got {actual_count}"
+    assert "/root/foo0" in files, "Expected file foo0"
+    assert f"/root/foo{expected_count - 1}" in files, f"Expected file foo{expected_count - 1}"
+
+    contents = machine.succeed("cat /root/foo0")
+    assert contents == "42\n", f"Expected foo0 to equal '42', got '{contents}'"
   '';
 }
