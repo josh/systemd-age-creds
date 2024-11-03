@@ -37,7 +37,7 @@ testers.runNixOSTest {
     print(machine.succeed("journalctl -u age-creds.service"))
     print(machine.succeed("journalctl -u age-creds-test.service"))
 
-    files = machine.succeed("ls /root").split("\n")
+    files = machine.succeed("ls /root").splitlines()
     expected_count = ${builtins.toString count}
     actual_count = len(files)
     assert actual_count == expected_count, f"Expected {expected_count} files, got {actual_count}: {files}"
