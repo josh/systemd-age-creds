@@ -41,8 +41,8 @@ testers.runNixOSTest {
     expected_count = ${builtins.toString count}
     actual_count = len(files)
     assert actual_count == expected_count, f"Expected {expected_count} files, got {actual_count}: {files}"
-    assert "/root/foo-1" in files, "Expected file foo-1"
-    assert f"/root/foo-{expected_count}" in files, f"Expected file foo-{expected_count}"
+    assert "foo-1" in files, "Expected file foo-1"
+    assert f"foo-{expected_count}" in files, f"Expected file foo-{expected_count}"
 
     contents = machine.succeed("cat /root/foo-1")
     assert contents == "42\n", f"Expected foo-1 to equal '42', got '{contents}'"
