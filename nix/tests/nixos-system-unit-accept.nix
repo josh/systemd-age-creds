@@ -27,7 +27,7 @@ testers.runNixOSTest {
     print(machine.succeed("journalctl -u age-creds.service"))
     print(machine.succeed("journalctl -u age-creds-test.service"))
 
-    contents = machine.succeed("cat /root/foo")
-    assert contents == "42\n", f"Expected foo to equal '42', got '{contents}'"
+    contents = machine.succeed("cat /root/foo").strip()
+    assert contents == "42", f"Expected foo to equal '42', got '{contents}'"
   '';
 }
