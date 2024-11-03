@@ -8,7 +8,7 @@ let
   credstoreDir = runCommandLocal "credstore" { } ''
     mkdir -p $out
     for i in $(seq 1 ${builtins.toString count}); do
-      cp ${./credstore.encrypted/FOO.age} $out/FOO_$i.age
+      cp ${./credstore.encrypted/foo.age} $out/foo-$i.age
     done
   '';
 in
