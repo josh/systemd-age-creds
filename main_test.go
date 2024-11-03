@@ -40,11 +40,13 @@ func TestActivationListener(t *testing.T) {
 		t.Error(err)
 	}
 
-	t.Setenv("LISTEN_PID", fmt.Sprintf("%d", os.Getpid()))
-	t.Setenv("LISTEN_FDS", "1")
-	t.Setenv("LISTEN_FDNAMES", "foo.sock")
-	t.Setenv("LISTEN_FDS_START", fmt.Sprintf("%d", f1.Fd()))
-	ln2, err := activationListener()
+	opts := &Options{
+		ListenPID:      os.Getpid(),
+		ListenFDs:      1,
+		ListenFDNames:  "foo.sock",
+		ListenFDsStart: int(f1.Fd()),
+	}
+	ln2, err := activationListener(opts)
 	if err != nil {
 		t.Error(err)
 	}

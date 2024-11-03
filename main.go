@@ -3,39 +3,94 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"syscall"
 )
 
-func main() {
-	if len(os.Args) < 2 {
-		log.Fatal("Usage: systemd-age-creds <directory>")
+type Options struct {
+	Accept         bool
+	Dir            string
+	ListenPID      int
+	ListenFDsStart int
+	ListenFDs      int
+	ListenFDNames  string
+}
+
+func parseFlags(progname string, args []string, out io.Writer) (*Options, error) {
+	defer os.Unsetenv("LISTEN_PID")
+	defer os.Unsetenv("LISTEN_FDS_START")
+	defer os.Unsetenv("LISTEN_FDS")
+	defer os.Unsetenv("LISTEN_FDNAMES")
+
+	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
+
+	var opts Options
+	fs.BoolVar(&opts.Accept, "accept", false, "assume connection already accepted")
+	fs.StringVar(&opts.Dir, "dir", "", "directory to store credentials in")
+	fs.IntVar(&opts.ListenPID, "listen-pid", 0, "intended PID of listener")
+	fs.IntVar(&opts.ListenFDsStart, "listen-fds-start", 3, "intended start of LISTEN_FDS")
+	fs.IntVar(&opts.ListenFDs, "listen-fds", 0, "intended number of LISTEN_FDS")
+	fs.StringVar(&opts.ListenFDNames, "listen-fdnames", "", "intended LISTEN_FDNAMES")
+
+	if val, ok := os.LookupEnv("LISTEN_PID"); ok {
+		fs.Set("listen-pid", val)
 	}
-	directory := os.Args[1]
+	if val, ok := os.LookupEnv("LISTEN_FDS_START"); ok {
+		fs.Set("listen-fds-start", val)
+	}
+	if val, ok := os.LookupEnv("LISTEN_FDS"); ok {
+		fs.Set("listen-fds", val)
+	}
+	if val, ok := os.LookupEnv("LISTEN_FDNAMES"); ok {
+		fs.Set("listen-fdnames", val)
+		if val == "connection" {
+			fs.Set("accept", "true")
+		}
+	}
 
-	defaultAccept := os.Getenv("LISTEN_FDNAMES") == "connection"
+	fs.SetOutput(out)
+	err := fs.Parse(args)
+	if err != nil {
+		return &opts, err
+	}
 
-	var accept bool
-	flag.BoolVar(&accept, "accept", defaultAccept, "assume connection already accepted")
-	flag.Parse()
+	if opts.Dir == "" && len(fs.Args()) > 0 {
+		opts.Dir = fs.Args()[0]
+	}
 
-	fmt.Printf("Starting systemd-age-creds with directory: %s\n", directory)
+	if opts.Dir == "" {
+		fs.Usage()
+		return &opts, fmt.Errorf("missing credentials directory")
+	}
 
-	if accept {
-		conn, err := activationConnection()
+	return &opts, nil
+}
+
+func main() {
+	opts, err := parseFlags(os.Args[0], os.Args[1:], os.Stderr)
+	if err == flag.ErrHelp {
+		os.Exit(0)
+	} else if err != nil {
+		os.Exit(2)
+	}
+
+	fmt.Printf("Starting systemd-age-creds with directory: %s\n", opts.Dir)
+
+	if opts.Accept {
+		conn, err := activationConnection(opts)
 		if err != nil {
 			log.Printf("Failed to accept connection: %v", err)
 			return
 		}
-		handleConnection(conn, directory)
+		handleConnection(conn, opts.Dir)
 	} else {
-		ln, err := activationListener()
+		ln, err := activationListener(opts)
 		if err != nil {
 			panic(err)
 		}
@@ -49,7 +104,7 @@ func main() {
 				log.Printf("Failed to accept connection: %v", err)
 				continue
 			}
-			go handleConnection(conn, directory)
+			go handleConnection(conn, opts.Dir)
 		}
 	}
 }
@@ -94,42 +149,20 @@ func parsePeerName(s string) (string, string, error) {
 	return matches[1], matches[2], nil
 }
 
-func activationFile() (*os.File, error) {
-	defer os.Unsetenv("LISTEN_PID")
-	defer os.Unsetenv("LISTEN_FDS_START")
-	defer os.Unsetenv("LISTEN_FDS")
-	defer os.Unsetenv("LISTEN_FDNAMES")
-
-	if os.Getenv("LISTEN_PID") == "" {
-		return nil, fmt.Errorf("expected LISTEN_PID=%d", os.Getpid())
-	}
-	if os.Getenv("LISTEN_FDS") == "" {
-		return nil, fmt.Errorf("expected LISTEN_FDS=1")
-	}
-	if os.Getenv("LISTEN_FDNAMES") == "" {
-		return nil, fmt.Errorf("expected LISTEN_FDNAMES=foo.sock")
+func activationFile(opts *Options) (*os.File, error) {
+	if opts.ListenPID != os.Getpid() {
+		return nil, fmt.Errorf("expected LISTEN_PID=%d, but was %d", os.Getpid(), opts.ListenPID)
 	}
 
-	pid, err := strconv.Atoi(os.Getenv("LISTEN_PID"))
-	if err != nil || pid != os.Getpid() {
-		return nil, fmt.Errorf("expected LISTEN_PID=%d, but was '%s'", os.Getpid(), os.Getenv("LISTEN_PID"))
+	fd := opts.ListenFDsStart
+
+	if opts.ListenFDs != 1 {
+		return nil, fmt.Errorf("expected LISTEN_FDS=1, but was %d", opts.ListenFDs)
 	}
 
-	fd := 3
-	if os.Getenv("LISTEN_FDS_START") != "" {
-		if fd, err = strconv.Atoi(os.Getenv("LISTEN_FDS_START")); err != nil {
-			return nil, fmt.Errorf("expected LISTEN_FDS_START to be a int, but was '%s'", os.Getenv("LISTEN_FDS_START"))
-		}
-	}
-
-	nfds, err := strconv.Atoi(os.Getenv("LISTEN_FDS"))
-	if err != nil || nfds != 1 {
-		return nil, fmt.Errorf("expected LISTEN_FDS=1, but was '%s'", os.Getenv("LISTEN_FDS"))
-	}
-
-	names := strings.Split(os.Getenv("LISTEN_FDNAMES"), ":")
+	names := strings.Split(opts.ListenFDNames, ":")
 	if len(names) != 1 {
-		return nil, fmt.Errorf("expected LISTEN_FDNAMES to set 1 name, but was '%s'", os.Getenv("LISTEN_FDNAMES"))
+		return nil, fmt.Errorf("expected LISTEN_FDNAMES to set 1 name, but was '%s'", opts.ListenFDNames)
 	}
 	name := names[0]
 
@@ -139,8 +172,8 @@ func activationFile() (*os.File, error) {
 	return f, nil
 }
 
-func activationListener() (*net.UnixListener, error) {
-	f, err := activationFile()
+func activationListener(opts *Options) (*net.UnixListener, error) {
+	f, err := activationFile(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +192,8 @@ func activationListener() (*net.UnixListener, error) {
 	return unixListener, nil
 }
 
-func activationConnection() (*net.UnixConn, error) {
-	f, err := activationFile()
+func activationConnection(opts *Options) (*net.UnixConn, error) {
+	f, err := activationFile(opts)
 	if err != nil {
 		return nil, err
 	}
