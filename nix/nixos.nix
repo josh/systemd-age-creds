@@ -18,6 +18,11 @@ in
       description = "The package to use for systemd-age-creds.";
     };
 
+    directory = lib.mkOption {
+      type = lib.types.path;
+      description = "The directory to load age credentials from.";
+    };
+
     socket = lib.mkOption {
       type = lib.types.path;
       default = "/run/age-creds.sock";
@@ -50,7 +55,7 @@ in
         description = "age credentials service";
         serviceConfig = {
           Type = "simple";
-          ExecStart = "${lib.getExe cfg.package}";
+          ExecStart = "${lib.getExe cfg.package} ${cfg.directory}";
         };
       };
     };

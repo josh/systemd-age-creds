@@ -13,13 +13,18 @@ import (
 )
 
 func main() {
+	if len(os.Args) < 2 {
+		log.Fatal("Usage: systemd-age-creds <directory>")
+	}
+	directory := os.Args[1]
+
 	defaultAccept := os.Getenv("LISTEN_FDNAMES") == "connection"
 
 	var accept bool
 	flag.BoolVar(&accept, "accept", defaultAccept, "assume connection already accepted")
 	flag.Parse()
 
-	fmt.Printf("Starting systemd-age-creds\n")
+	fmt.Printf("Starting systemd-age-creds with directory: %s\n", directory)
 
 	if accept {
 		conn, err := activationConnection()
