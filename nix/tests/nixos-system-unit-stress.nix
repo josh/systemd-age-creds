@@ -40,7 +40,7 @@ testers.runNixOSTest {
     files = machine.succeed("ls /root").split("\n")
     expected_count = ${builtins.toString count}
     actual_count = len(files)
-    assert actual_count == expected_count, "Expected {expected_count} files, got {actual_count}: {files}"
+    assert actual_count == expected_count, f"Expected {expected_count} files, got {actual_count}: {files}"
     assert "/root/foo-1" in files, "Expected file foo-1"
     assert f"/root/foo-{expected_count}" in files, f"Expected file foo-{expected_count}"
 
