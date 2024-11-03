@@ -22,7 +22,11 @@ testers.runNixOSTest {
 
   testScript = ''
     machine.wait_for_unit("age-creds-test.service");
-    machine.succeed("test -f /root/foo")
-    machine.succeed("test $(cat /root/foo) -eq 42")
+    print(machine.succeed("journalctl -u age-creds.socket"))
+    print(machine.succeed("journalctl -u age-creds.service"))
+    print(machine.succeed("journalctl -u age-creds-test.service"))
+
+    contents = machine.succeed("cat /root/foo")
+    assert contents == "42\n", f"Expected foo to equal '42', got '{contents}'"
   '';
 }
