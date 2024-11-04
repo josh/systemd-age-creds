@@ -136,7 +136,7 @@ func main() {
 		fmt.Printf("Listening on %s\n", ln.Addr())
 
 		for {
-			conn, err := ln.Accept()
+			conn, err := ln.AcceptUnix()
 			if err != nil {
 				log.Printf("Failed to accept connection: %v", err)
 				continue
@@ -146,13 +146,12 @@ func main() {
 	}
 }
 
-func handleConnection(conn net.Conn, directory string) {
+func handleConnection(conn *net.UnixConn, directory string) {
 	defer conn.Close()
 
 	unixAddr, ok := conn.RemoteAddr().(*net.UnixAddr)
 	if !ok {
-		log.Printf("client must be a unix addr")
-		return
+		panic("client must be a unix addr")
 	}
 
 	unitName, credID, err := parsePeerName(unixAddr.Name)
