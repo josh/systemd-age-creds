@@ -59,11 +59,18 @@ testers.runNixOSTest {
   testScript = ''
     import json
     creds = json.loads('${builtins.toJSON creds}')
+    accept = ${if socketAccept then "True" else "False"}
 
     machine.wait_for_unit("age-creds-test.service");
     print(machine.succeed("journalctl -u age-creds.socket"))
     print(machine.succeed("journalctl -u age-creds.service"))
     print(machine.succeed("journalctl -u age-creds-test.service"))
+
+    if accept:
+      n_connections = int(machine.get_unit_property("age-creds.socket", "NConnections"))
+      n_accepted = int(machine.get_unit_property("age-creds.socket", "NAccepted"))
+      assert n_connections == 0, f"Expected 0 active connection, got {n_connections}"
+      assert n_accepted == len(creds), f"Expected {len(creds)} accepted connections, got {n_accepted}"
 
     files = machine.succeed("ls /root").splitlines()
     assert len(files) > 0, "Expected at least one file in /root"
