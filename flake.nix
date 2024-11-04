@@ -31,23 +31,70 @@
         nixpkgs.overlays = [ self.overlays.default ];
       };
 
-      checks = {
-        aarch64-linux.systemd-age-creds = self.packages.aarch64-linux.systemd-age-creds;
-        x86_64-linux.systemd-age-creds = self.packages.x86_64-linux.systemd-age-creds;
+      checks =
+        let
+          oneCred = {
+            foo = "42";
+          };
+          fewCreds = builtins.listToAttrs (
+            builtins.genList (i: {
+              name = "foo-${builtins.toString i}";
+              value = builtins.toString i;
+            }) 3
+          );
+          manyCreds = builtins.listToAttrs (
+            builtins.genList (i: {
+              name = "foo-${builtins.toString i}";
+              value = builtins.toString i;
+            }) 50
+          );
+        in
+        {
+          aarch64-linux.systemd-age-creds = self.packages.aarch64-linux.systemd-age-creds;
+          x86_64-linux.systemd-age-creds = self.packages.x86_64-linux.systemd-age-creds;
 
-        x86_64-linux.nixos-system-unit = callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix {
-          inherit self;
+          x86_64-linux.nixos-system-unit-one-accept-no =
+            callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix
+              {
+                inherit self;
+                testName = "accept-no";
+                creds = oneCred;
+                socketAccept = false;
+              };
+          x86_64-linux.nixos-system-unit-one-accept-yes =
+            callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix
+              {
+                inherit self;
+                testName = "accept-yes";
+                creds = oneCred;
+                socketAccept = true;
+              };
+
+          x86_64-linux.nixos-system-unit-few-accept-no =
+            callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix
+              {
+                inherit self;
+                testName = "few-accept-no";
+                creds = fewCreds;
+                socketAccept = false;
+              };
+          # x86_64-linux.nixos-system-unit-few-accept-yes =
+          #   callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix
+          #     {
+          #       inherit self;
+          #       testName = "few-accept-yes";
+          #       creds = fewCreds;
+          #       socketAccept = true;
+          #     };
+
+          x86_64-linux.nixos-system-unit-many-accept-no =
+            callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix
+              {
+                testName = "many-accept-no";
+                inherit self;
+                creds = manyCreds;
+                socketAccept = false;
+              };
         };
-        x86_64-linux.nixos-system-unit-accept =
-          callPackage.x86_64-linux ./nix/tests/nixos-system-unit-accept.nix
-            {
-              inherit self;
-            };
-        x86_64-linux.nixos-system-unit-stress =
-          callPackage.x86_64-linux ./nix/tests/nixos-system-unit-stress.nix
-            {
-              inherit self;
-            };
-      };
     };
 }
