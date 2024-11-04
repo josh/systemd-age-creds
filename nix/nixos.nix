@@ -18,6 +18,11 @@ in
       description = "The package to use for systemd-age-creds.";
     };
 
+    identity = lib.mkOption {
+      type = lib.types.path;
+      description = "The path to the age decryption identity.";
+    };
+
     directory = lib.mkOption {
       type = lib.types.path;
       description = "The directory to load age credentials from.";
@@ -55,7 +60,11 @@ in
         description = "age credentials service";
         serviceConfig = {
           Type = "simple";
-          ExecStart = "${lib.getExe cfg.package} ${cfg.directory}";
+          Environment = [
+            "AGE_DIR=${cfg.directory}"
+            "AGE_IDENTITY=${cfg.identity}"
+          ];
+          ExecStart = "${lib.getExe cfg.package}";
         };
       };
     };

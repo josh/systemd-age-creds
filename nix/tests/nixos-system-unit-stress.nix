@@ -27,6 +27,7 @@ testers.runNixOSTest {
     {
       imports = [ self.nixosModules.default ];
       services.systemd-age-creds.enable = true;
+      services.systemd-age-creds.identity = ./key.txt;
       services.systemd-age-creds.directory = credstoreDir;
       systemd.services.age-creds-test = {
         wantedBy = [ "multi-user.target" ];

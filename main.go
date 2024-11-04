@@ -16,27 +16,38 @@ import (
 type Options struct {
 	Accept         bool
 	Dir            string
-	ListenPID      int
-	ListenFDsStart int
-	ListenFDs      int
+	Identity       string
 	ListenFDNames  string
+	ListenFDs      int
+	ListenFDsStart int
+	ListenPID      int
 }
 
 func parseFlags(progname string, args []string, out io.Writer) (*Options, error) {
-	defer os.Unsetenv("LISTEN_PID")
-	defer os.Unsetenv("LISTEN_FDS_START")
-	defer os.Unsetenv("LISTEN_FDS")
-	defer os.Unsetenv("LISTEN_FDNAMES")
+	var opts Options
 
 	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
-
-	var opts Options
 	fs.BoolVar(&opts.Accept, "accept", false, "assume connection already accepted")
 	fs.StringVar(&opts.Dir, "dir", "", "directory to store credentials in")
-	fs.IntVar(&opts.ListenPID, "listen-pid", 0, "intended PID of listener")
-	fs.IntVar(&opts.ListenFDsStart, "listen-fds-start", 3, "intended start of LISTEN_FDS")
-	fs.IntVar(&opts.ListenFDs, "listen-fds", 0, "intended number of LISTEN_FDS")
+	fs.StringVar(&opts.Identity, "identity", "", "age identity file")
 	fs.StringVar(&opts.ListenFDNames, "listen-fdnames", "", "intended LISTEN_FDNAMES")
+	fs.IntVar(&opts.ListenFDs, "listen-fds", 0, "intended number of LISTEN_FDS")
+	fs.IntVar(&opts.ListenFDsStart, "listen-fds-start", 3, "intended start of LISTEN_FDS")
+	fs.IntVar(&opts.ListenPID, "listen-pid", 0, "intended PID of listener")
+
+	defer os.Unsetenv("AGE_DIR")
+	defer os.Unsetenv("AGE_IDENTITY")
+	defer os.Unsetenv("LISTEN_FDNAMES")
+	defer os.Unsetenv("LISTEN_FDS")
+	defer os.Unsetenv("LISTEN_FDS_START")
+	defer os.Unsetenv("LISTEN_PID")
+
+	if val, ok := os.LookupEnv("AGE_DIR"); ok {
+		fs.Set("dir", val)
+	}
+	if val, ok := os.LookupEnv("AGE_IDENTITY"); ok {
+		fs.Set("identity", val)
+	}
 
 	if val, ok := os.LookupEnv("LISTEN_PID"); ok {
 		fs.Set("listen-pid", val)
@@ -60,13 +71,14 @@ func parseFlags(progname string, args []string, out io.Writer) (*Options, error)
 		return &opts, err
 	}
 
-	if opts.Dir == "" && len(fs.Args()) > 0 {
-		opts.Dir = fs.Args()[0]
-	}
-
 	if opts.Dir == "" {
 		fs.Usage()
 		return &opts, fmt.Errorf("missing credentials directory")
+	}
+
+	if opts.Identity == "" {
+		fs.Usage()
+		return &opts, fmt.Errorf("missing age identity file")
 	}
 
 	return &opts, nil
