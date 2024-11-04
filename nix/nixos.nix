@@ -58,6 +58,12 @@ in
 
       systemd.services.${serviceName} = {
         description = "age credentials service";
+
+        unitConfig = {
+          AssertFileNotEmpty = cfg.identity;
+          AssertDirectoryNotEmpty = cfg.directory;
+        };
+
         serviceConfig = {
           Type = "simple";
           Environment = [

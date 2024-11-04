@@ -1,6 +1,7 @@
 {
   lib,
   self,
+  age,
   runCommandLocal,
   testers,
   testName,
@@ -22,6 +23,14 @@ let
     in
     runCommandLocal "credstore" { } script;
 
+  identityFile =
+    runCommandLocal "identity"
+      {
+        buildInputs = [ age ];
+      }
+      ''
+        age-keygen -o $out
+      '';
 in
 
 assert credCount > 0;
@@ -41,7 +50,7 @@ testers.runNixOSTest {
     {
       imports = [ self.nixosModules.default ];
       services.systemd-age-creds.enable = true;
-      services.systemd-age-creds.identity = ./key.txt;
+      services.systemd-age-creds.identity = identityFile;
       services.systemd-age-creds.directory = credstoreDir;
       services.systemd-age-creds.socketAccept = socketAccept;
       systemd.services.age-creds-test = {
@@ -61,6 +70,7 @@ testers.runNixOSTest {
     creds = json.loads('${builtins.toJSON creds}')
     accept = ${if socketAccept then "True" else "False"}
 
+    machine.wait_for_unit("age-creds.socket");
     machine.wait_for_unit("age-creds-test.service");
     print(machine.succeed("journalctl -u age-creds.socket"))
     print(machine.succeed("journalctl -u age-creds.service"))
