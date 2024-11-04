@@ -13,7 +13,17 @@ import (
 	"syscall"
 )
 
+var (
+	AGE_BIN          = ""
+	AGE_DIR          = ""
+	AGE_IDENTITY     = ""
+	LISTEN_FDS_START = 3
+)
+
+var Version = "0.0.0"
+
 type Options struct {
+	AgeBin         string
 	Accept         bool
 	Dir            string
 	Identity       string
@@ -21,20 +31,24 @@ type Options struct {
 	ListenFDs      int
 	ListenFDsStart int
 	ListenPID      int
+	ShowVersion    bool
 }
 
 func parseFlags(progname string, args []string, out io.Writer) (*Options, error) {
 	var opts Options
 
 	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
+	fs.StringVar(&opts.AgeBin, "age-bin", AGE_BIN, "path to age binary")
 	fs.BoolVar(&opts.Accept, "accept", false, "assume connection already accepted")
-	fs.StringVar(&opts.Dir, "dir", "", "directory to store credentials in")
-	fs.StringVar(&opts.Identity, "identity", "", "age identity file")
+	fs.StringVar(&opts.Dir, "dir", AGE_DIR, "directory to store credentials in")
+	fs.StringVar(&opts.Identity, "identity", AGE_IDENTITY, "age identity file")
 	fs.StringVar(&opts.ListenFDNames, "listen-fdnames", "", "intended LISTEN_FDNAMES")
 	fs.IntVar(&opts.ListenFDs, "listen-fds", 0, "intended number of LISTEN_FDS")
-	fs.IntVar(&opts.ListenFDsStart, "listen-fds-start", 3, "intended start of LISTEN_FDS")
+	fs.IntVar(&opts.ListenFDsStart, "listen-fds-start", LISTEN_FDS_START, "intended start of LISTEN_FDS")
 	fs.IntVar(&opts.ListenPID, "listen-pid", 0, "intended PID of listener")
+	fs.BoolVar(&opts.ShowVersion, "version", false, "print version and exit")
 
+	defer os.Unsetenv("AGE_BIN")
 	defer os.Unsetenv("AGE_DIR")
 	defer os.Unsetenv("AGE_IDENTITY")
 	defer os.Unsetenv("LISTEN_FDNAMES")
@@ -42,6 +56,9 @@ func parseFlags(progname string, args []string, out io.Writer) (*Options, error)
 	defer os.Unsetenv("LISTEN_FDS_START")
 	defer os.Unsetenv("LISTEN_PID")
 
+	if val, ok := os.LookupEnv("AGE_BIN"); ok {
+		fs.Set("age-bin", val)
+	}
 	if val, ok := os.LookupEnv("AGE_DIR"); ok {
 		fs.Set("dir", val)
 	}
@@ -71,6 +88,9 @@ func parseFlags(progname string, args []string, out io.Writer) (*Options, error)
 		return &opts, err
 	}
 
+	if opts.ShowVersion {
+		return &opts, nil
+	}
 	if opts.Dir == "" {
 		fs.Usage()
 		return &opts, fmt.Errorf("missing credentials directory")
@@ -90,6 +110,11 @@ func main() {
 		os.Exit(0)
 	} else if err != nil {
 		os.Exit(2)
+	}
+
+	if opts.ShowVersion {
+		fmt.Printf("systemd-age-creds %s\n", Version)
+		os.Exit(0)
 	}
 
 	fmt.Printf("Starting systemd-age-creds with directory: %s\n", opts.Dir)

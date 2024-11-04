@@ -1,7 +1,14 @@
-{ lib, buildGoModule }:
+{
+  lib,
+  buildGoModule,
+  age,
+}:
+let
+  version = "0.0.0";
+in
 buildGoModule {
   pname = "systemd-age-creds";
-  version = "0.0.0";
+  version = version;
   src = lib.sources.sourceByRegex ./.. [
     ".*\.go$"
     "^go.mod$"
@@ -10,6 +17,13 @@ buildGoModule {
   vendorHash = null;
 
   CGO_ENABLED = 0;
+
+  ldflags = [
+    "-s"
+    "-w"
+    "-X main.Version=${version}"
+    "-X main.AGE_BIN=${lib.getExe age}"
+  ];
 
   meta = {
     description = "Load age encrypted credentials in systemd units";
