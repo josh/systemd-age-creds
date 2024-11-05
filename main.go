@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -117,12 +116,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	fmt.Printf("Starting systemd-age-creds with directory: %s\n", opts.Dir)
+	fmt.Printf("Starting systemd-age-creds\n")
 
 	if opts.Accept {
 		conn, err := activationConnection(opts)
 		if err != nil {
-			log.Printf("Failed to accept connection: %v", err)
+			fmt.Printf("Failed to accept connection: %v\n", err)
 			return
 		}
 		handleConnection(conn, opts.Dir)
@@ -138,12 +137,14 @@ func main() {
 		for {
 			conn, err := ln.AcceptUnix()
 			if err != nil {
-				log.Printf("Failed to accept connection: %v", err)
+				fmt.Printf("Failed to accept connection: %v\n", err)
 				continue
 			}
 			go handleConnection(conn, opts.Dir)
 		}
 	}
+
+	fmt.Println("Stopping systemd-age-creds\n")
 }
 
 func handleConnection(conn *net.UnixConn, directory string) {
@@ -156,23 +157,23 @@ func handleConnection(conn *net.UnixConn, directory string) {
 
 	unitName, credID, err := parsePeerName(unixAddr.Name)
 	if err != nil {
-		log.Printf("Failed to parse peer name: %s", unixAddr.Name)
+		fmt.Printf("Failed to parse peer name: %s\n", unixAddr.Name)
 		return
 	}
-	log.Printf("%s requesting '%s' credential", unitName, credID)
+	fmt.Printf("%s requesting '%s' credential\n", unitName, credID)
 
 	filename := fmt.Sprintf("%s.age", credID)
 	path := filepath.Join(directory, filename)
 	content, err := os.ReadFile(path)
 	if err != nil {
-		log.Printf("Failed to read credential file %s: %v", path, err)
+		fmt.Printf("Failed to read credential file %s: %v\n", path, err)
 		return
 	}
 
 	// Write the content back to the connection
 	_, err = conn.Write(content)
 	if err != nil {
-		log.Printf("Failed to write credential: %v", err)
+		fmt.Printf("Failed to write credential: %v\n", err)
 		return
 	}
 }
