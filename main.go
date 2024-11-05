@@ -21,7 +21,7 @@ var (
 
 var Version = "0.0.0"
 
-type Options struct {
+type options struct {
 	AgeBin         string
 	Accept         bool
 	Dir            string
@@ -33,8 +33,18 @@ type Options struct {
 	ShowVersion    bool
 }
 
-func parseFlags(progname string, args []string, out io.Writer) (*Options, error) {
-	var opts Options
+var envFlags = map[string]string{
+	"AGE_BIN":          "age-bin",
+	"AGE_DIR":          "dir",
+	"AGE_IDENTITY":     "identity",
+	"LISTEN_PID":       "listen-pid",
+	"LISTEN_FDS_START": "listen-fds-start",
+	"LISTEN_FDS":       "listen-fds",
+	"LISTEN_FDNAMES":   "listen-fdnames",
+}
+
+func parseFlags(progname string, args []string, out io.Writer) (*options, error) {
+	var opts options
 
 	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
 	fs.StringVar(&opts.AgeBin, "age-bin", AGE_BIN, "path to age binary")
@@ -47,37 +57,12 @@ func parseFlags(progname string, args []string, out io.Writer) (*Options, error)
 	fs.IntVar(&opts.ListenPID, "listen-pid", 0, "intended PID of listener")
 	fs.BoolVar(&opts.ShowVersion, "version", false, "print version and exit")
 
-	defer os.Unsetenv("AGE_BIN")
-	defer os.Unsetenv("AGE_DIR")
-	defer os.Unsetenv("AGE_IDENTITY")
-	defer os.Unsetenv("LISTEN_FDNAMES")
-	defer os.Unsetenv("LISTEN_FDS")
-	defer os.Unsetenv("LISTEN_FDS_START")
-	defer os.Unsetenv("LISTEN_PID")
-
-	if val, ok := os.LookupEnv("AGE_BIN"); ok {
-		fs.Set("age-bin", val)
-	}
-	if val, ok := os.LookupEnv("AGE_DIR"); ok {
-		fs.Set("dir", val)
-	}
-	if val, ok := os.LookupEnv("AGE_IDENTITY"); ok {
-		fs.Set("identity", val)
-	}
-
-	if val, ok := os.LookupEnv("LISTEN_PID"); ok {
-		fs.Set("listen-pid", val)
-	}
-	if val, ok := os.LookupEnv("LISTEN_FDS_START"); ok {
-		fs.Set("listen-fds-start", val)
-	}
-	if val, ok := os.LookupEnv("LISTEN_FDS"); ok {
-		fs.Set("listen-fds", val)
-	}
-	if val, ok := os.LookupEnv("LISTEN_FDNAMES"); ok {
-		fs.Set("listen-fdnames", val)
-		if val == "connection" {
-			fs.Set("accept", "true")
+	for envName, flagName := range envFlags {
+		if val, ok := os.LookupEnv(envName); ok {
+			if err := fs.Set(flagName, val); err != nil {
+				return nil, err
+			}
+			os.Unsetenv(envName)
 		}
 	}
 
@@ -98,6 +83,10 @@ func parseFlags(progname string, args []string, out io.Writer) (*Options, error)
 	if opts.Identity == "" {
 		fs.Usage()
 		return &opts, fmt.Errorf("missing age identity file")
+	}
+
+	if opts.ListenFDNames == "connection" {
+		opts.Accept = true
 	}
 
 	return &opts, nil
@@ -186,7 +175,7 @@ func parsePeerName(s string) (string, string, error) {
 	return matches[1], matches[2], nil
 }
 
-func activationFile(opts *Options) (*os.File, error) {
+func activationFile(opts *options) (*os.File, error) {
 	if opts.ListenPID != os.Getpid() {
 		return nil, fmt.Errorf("expected LISTEN_PID=%d, but was %d", os.Getpid(), opts.ListenPID)
 	}
@@ -209,7 +198,7 @@ func activationFile(opts *Options) (*os.File, error) {
 	return f, nil
 }
 
-func activationListener(opts *Options) (*net.UnixListener, error) {
+func activationListener(opts *options) (*net.UnixListener, error) {
 	f, err := activationFile(opts)
 	if err != nil {
 		return nil, err
@@ -229,7 +218,7 @@ func activationListener(opts *Options) (*net.UnixListener, error) {
 	return unixListener, nil
 }
 
-func activationConnection(opts *Options) (*net.UnixConn, error) {
+func activationConnection(opts *options) (*net.UnixConn, error) {
 	f, err := activationFile(opts)
 	if err != nil {
 		return nil, err

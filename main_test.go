@@ -40,7 +40,7 @@ func TestActivationListener(t *testing.T) {
 		t.Error(err)
 	}
 
-	opts := &Options{
+	opts := &options{
 		ListenPID:      os.Getpid(),
 		ListenFDs:      1,
 		ListenFDNames:  "foo.sock",
