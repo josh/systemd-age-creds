@@ -56,6 +56,7 @@ testers.runNixOSTest {
       systemd.services.age-creds-test = {
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
+          Type = "oneshot";
           RemainAfterExit = "yes";
           LoadCredential = builtins.map (
             name: "${name}:${config.services.systemd-age-creds.socket}"
