@@ -48,10 +48,12 @@ testers.runNixOSTest {
     }:
     {
       imports = [ self.nixosModules.default ];
-      services.systemd-age-creds.enable = true;
-      services.systemd-age-creds.identity = identityFile;
-      services.systemd-age-creds.directory = credstoreDir;
-      services.systemd-age-creds.socketAccept = socketAccept;
+      services.systemd-age-creds = {
+        enable = true;
+        identity = identityFile;
+        directory = credstoreDir;
+        inherit socketAccept;
+      };
       systemd.services.age-creds-test = {
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
