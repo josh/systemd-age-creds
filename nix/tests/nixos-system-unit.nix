@@ -42,7 +42,6 @@ testers.runNixOSTest {
 
   nodes.machine =
     {
-      lib,
       config,
       pkgs,
       ...
