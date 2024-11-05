@@ -36,7 +36,7 @@ in
 assert credCount > 0;
 
 testers.runNixOSTest {
-  name = "nixos-system-unit-${testName}";
+  name = testName;
 
   node.pkgsReadOnly = false;
 
