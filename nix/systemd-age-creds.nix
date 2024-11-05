@@ -8,7 +8,7 @@ let
 in
 buildGoModule {
   pname = "systemd-age-creds";
-  version = version;
+  inherit version;
   src = lib.sources.sourceByRegex ./.. [
     ".*\.go$"
     "^go.mod$"

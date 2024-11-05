@@ -8,7 +8,7 @@
   outputs =
     { self, nixpkgs }:
     let
-      lib = nixpkgs.lib;
+      inherit (nixpkgs) lib;
       mapListToAttrs = f: list: builtins.listToAttrs (builtins.map f list);
       callPackage = {
         aarch64-linux = nixpkgs.legacyPackages.aarch64-linux.callPackage;
@@ -36,12 +36,12 @@
 
       checks = {
         aarch64-linux = {
-          systemd-age-creds = self.packages.aarch64-linux.systemd-age-creds;
+          inherit (self.packages.aarch64-linux) systemd-age-creds;
         };
 
         x86_64-linux =
           {
-            systemd-age-creds = self.packages.x86_64-linux.systemd-age-creds;
+            inherit (self.packages.x86_64-linux) systemd-age-creds;
           }
           // (mapListToAttrs (
             test:
