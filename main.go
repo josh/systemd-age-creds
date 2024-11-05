@@ -144,7 +144,7 @@ func main() {
 		}
 	}
 
-	fmt.Println("Stopping systemd-age-creds\n")
+	fmt.Printf("Stopping systemd-age-creds\n")
 }
 
 func handleConnection(conn *net.UnixConn, directory string) {
