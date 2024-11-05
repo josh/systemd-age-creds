@@ -74,9 +74,6 @@ testers.runNixOSTest {
 
     machine.wait_for_unit("age-creds.socket");
     machine.wait_for_unit("age-creds-test.service");
-    print(machine.succeed("journalctl -u age-creds.socket"))
-    print(machine.succeed("journalctl -u age-creds.service"))
-    print(machine.succeed("journalctl -u age-creds-test.service"))
 
     if accept:
       n_connections = int(machine.get_unit_property("age-creds.socket", "NConnections"))
