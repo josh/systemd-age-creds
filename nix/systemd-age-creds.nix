@@ -13,6 +13,8 @@ buildGoModule {
     ".*\.go$"
     "^go.mod$"
     "^go.sum$"
+    "^test$"
+    "^test\/.*$"
   ];
   vendorHash = null;
 
