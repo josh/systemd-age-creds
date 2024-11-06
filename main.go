@@ -105,19 +105,26 @@ func main() {
 		os.Exit(0)
 	}
 
-	fmt.Printf("Starting systemd-age-creds\n")
+	fmt.Println("Starting systemd-age-creds")
+	defer fmt.Println("Stopping systemd-age-creds")
 
+	err = start(opts)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func start(opts *options) error {
 	if opts.Accept {
 		conn, err := activationConnection(opts)
 		if err != nil {
-			fmt.Printf("Failed to accept connection: %v\n", err)
-			return
+			return fmt.Errorf("failed to accept connection: %w", err)
 		}
-		handleConnection(conn, opts.Dir)
+		return handleConnection(conn, opts.Dir)
 	} else {
 		ln, err := activationListener(opts)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		defer ln.Close()
 
@@ -129,25 +136,27 @@ func main() {
 				fmt.Printf("Failed to accept connection: %v\n", err)
 				continue
 			}
-			go handleConnection(conn, opts.Dir)
+			go func(conn *net.UnixConn, opts *options) {
+				err := handleConnection(conn, opts.Dir)
+				if err != nil {
+					fmt.Printf("ERROR: %v\n", err)
+				}
+			}(conn, opts)
 		}
 	}
-
-	fmt.Printf("Stopping systemd-age-creds\n")
 }
 
-func handleConnection(conn *net.UnixConn, directory string) {
+func handleConnection(conn *net.UnixConn, directory string) error {
 	defer conn.Close()
 
 	unixAddr, ok := conn.RemoteAddr().(*net.UnixAddr)
 	if !ok {
-		panic("client must be a unix addr")
+		return fmt.Errorf("client must be a unix addr")
 	}
 
 	unitName, credID, err := parsePeerName(unixAddr.Name)
 	if err != nil {
-		fmt.Printf("Failed to parse peer name: %s\n", unixAddr.Name)
-		return
+		return fmt.Errorf("failed to parse peer name: %s %w", unixAddr.Name, err)
 	}
 	fmt.Printf("%s requesting '%s' credential\n", unitName, credID)
 
@@ -155,16 +164,16 @@ func handleConnection(conn *net.UnixConn, directory string) {
 	path := filepath.Join(directory, filename)
 	content, err := os.ReadFile(path)
 	if err != nil {
-		fmt.Printf("Failed to read credential file %s: %v\n", path, err)
-		return
+		return fmt.Errorf("failed to read credential file %s: %w", path, err)
 	}
 
 	// Write the content back to the connection
 	_, err = conn.Write(content)
 	if err != nil {
-		fmt.Printf("Failed to write credential: %v\n", err)
-		return
+		return fmt.Errorf("failed to write credential: %w", err)
 	}
+
+	return nil
 }
 
 func parsePeerName(s string) (string, string, error) {
