@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestParsePeerNameOk(t *testing.T) {
@@ -82,6 +83,7 @@ func TestStartAccept(t *testing.T) {
 		}
 	}()
 
+	ln.SetDeadline(time.Now().Add(1 * time.Second))
 	conn, err := ln.AcceptUnix()
 	if err != nil {
 		t.Error(err)
