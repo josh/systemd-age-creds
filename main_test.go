@@ -14,6 +14,8 @@ import (
 )
 
 func TestParsePeerNameOk(t *testing.T) {
+	t.Parallel()
+
 	unit, cred, err := parsePeerName("@f4b4692a71d9438e/unit/age-creds-test.service/foo")
 	if err != nil {
 		t.Error(err)
@@ -29,6 +31,8 @@ func TestParsePeerNameOk(t *testing.T) {
 }
 
 func TestParsePeerNameBlank(t *testing.T) {
+	t.Parallel()
+
 	_, _, err := parsePeerName("")
 	if err == nil {
 		t.Error("expected parse error")
@@ -36,6 +40,8 @@ func TestParsePeerNameBlank(t *testing.T) {
 }
 
 func TestActivationListener(t *testing.T) {
+	t.Parallel()
+
 	socketPath := t.TempDir() + "/foo.sock"
 
 	ln1, err := net.Listen("unix", socketPath)
@@ -74,6 +80,8 @@ func TestActivationListener(t *testing.T) {
 }
 
 func TestStartAccept(t *testing.T) {
+	t.Parallel()
+
 	sname := t.TempDir() + "/connection"
 	saddr := &net.UnixAddr{Name: sname, Net: "unix"}
 

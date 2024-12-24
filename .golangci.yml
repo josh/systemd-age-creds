@@ -6,5 +6,4 @@ linters:
     - forbidigo
     - gochecknoglobals
     - nlreturn
-    - paralleltest
     - varnamelen
