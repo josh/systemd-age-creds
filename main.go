@@ -63,7 +63,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	for envName, flagName := range envFlags {
 		if val, ok := os.LookupEnv(envName); ok {
 			if err := fs.Set(flagName, val); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("falg set error: %w", err)
 			}
 			os.Unsetenv(envName)
 		}
@@ -72,7 +72,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	fs.SetOutput(out)
 	err := fs.Parse(args)
 	if err != nil {
-		return &opts, err
+		return &opts, fmt.Errorf("argument error: %w", err)
 	}
 
 	if opts.ShowVersion {
@@ -229,7 +229,7 @@ func activationListener(opts *options) (*net.UnixListener, error) {
 
 	l, err := net.FileListener(f)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create listener: %w", err)
 	}
 	f.Close()
 
@@ -249,7 +249,7 @@ func activationConnection(opts *options) (*net.UnixConn, error) {
 
 	conn, err := net.FileConn(f)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create connection: %w", err)
 	}
 
 	unixConn, ok := conn.(*net.UnixConn)
