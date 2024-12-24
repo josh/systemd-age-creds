@@ -15,6 +15,7 @@ import (
 	"syscall"
 )
 
+//nolint:all
 var (
 	AGE_BIN          = ""
 	AGE_DIR          = ""

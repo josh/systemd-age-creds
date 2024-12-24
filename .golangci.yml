@@ -9,5 +9,4 @@ linters:
     - nlreturn
     - paralleltest
     - revive
-    - stylecheck
     - varnamelen
