@@ -85,7 +85,11 @@ func TestStartAccept(t *testing.T) {
 		}
 	}()
 
-	ln.SetDeadline(time.Now().Add(1 * time.Second))
+	err = ln.SetDeadline(time.Now().Add(1 * time.Second))
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	conn, err := ln.AcceptUnix()
 	if err != nil {
 		t.Error(err)
