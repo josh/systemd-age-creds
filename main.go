@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -96,7 +97,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 
 func main() {
 	opts, err := parseFlags(os.Args[0], os.Args[1:], os.Stderr)
-	if err == flag.ErrHelp {
+	if errors.Is(err, flag.ErrHelp) {
 		os.Exit(0)
 	} else if err != nil {
 		os.Exit(2)
