@@ -123,6 +123,8 @@ func testDir() string {
 	return filepath.Join(wd, "test")
 }
 
+var errReadZero = errors.New("read 0 bytes")
+
 func readCred(credID string, socketPath string) (string, error) {
 	lname := "@f4b4692a71d9438e/unit/test.service/" + credID
 	laddr := &net.UnixAddr{Name: lname, Net: "unix"}
@@ -139,7 +141,7 @@ func readCred(credID string, socketPath string) (string, error) {
 		return "", err
 	}
 	if len(buf) == 0 {
-		return "", errors.New("read 0 bytes")
+		return "", errReadZero
 	}
 
 	return string(buf), nil

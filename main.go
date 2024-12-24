@@ -80,12 +80,12 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	}
 	if opts.Dir == "" {
 		fs.Usage()
-		return &opts, errors.New("missing credentials directory")
+		return &opts, errMissingCredentialsDir
 	}
 
 	if opts.Identity == "" {
 		fs.Usage()
-		return &opts, errors.New("missing age identity file")
+		return &opts, errMissingAgeIdentityFile
 	}
 
 	if opts.ListenFDNames == "connection" {
@@ -94,6 +94,14 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 
 	return &opts, nil
 }
+
+var (
+	errInvalidPeerName        = errors.New("invalid peer name")
+	errMissingAgeIdentityFile = errors.New("missing age identity file")
+	errMissingCredentialsDir  = errors.New("missing credentials directory")
+	errNotUnixSocket          = errors.New("must be a unix socket")
+	errSocketActivation       = errors.New("socket activation error")
+)
 
 func main() {
 	opts, err := parseFlags(os.Args[0], os.Args[1:], os.Stderr)
@@ -154,12 +162,12 @@ func handleConnection(conn *net.UnixConn, directory string) error {
 
 	unixAddr, ok := conn.RemoteAddr().(*net.UnixAddr)
 	if !ok {
-		return errors.New("client must be a unix addr")
+		panic("expected unix connection to return a unix addr")
 	}
 
 	unitName, credID, err := parsePeerName(unixAddr.Name)
 	if err != nil {
-		return fmt.Errorf("failed to parse peer name: %s %w", unixAddr.Name, err)
+		return err
 	}
 	fmt.Printf("%s requesting '%s' credential\n", unitName, credID)
 
@@ -182,25 +190,28 @@ func handleConnection(conn *net.UnixConn, directory string) error {
 func parsePeerName(s string) (string, string, error) {
 	matches := regexp.MustCompile("^@.*/unit/(.*)/(.*)$").FindStringSubmatch(s)
 	if matches == nil {
-		return "", "", fmt.Errorf("failed to parse peer name: %s", s)
+		return "", "", fmt.Errorf("%w: %s", errInvalidPeerName, s)
 	}
 	return matches[1], matches[2], nil
 }
 
 func activationFile(opts *options) (*os.File, error) {
 	if opts.ListenPID != os.Getpid() {
-		return nil, fmt.Errorf("expected LISTEN_PID=%d, but was %d", os.Getpid(), opts.ListenPID)
+		return nil, fmt.Errorf("%w: expected LISTEN_PID=%d, but was %d",
+			errSocketActivation, os.Getpid(), opts.ListenPID)
 	}
 
 	fd := opts.ListenFDsStart
 
 	if opts.ListenFDs != 1 {
-		return nil, fmt.Errorf("expected LISTEN_FDS=1, but was %d", opts.ListenFDs)
+		return nil, fmt.Errorf("%w: expected LISTEN_FDS=1, but was %d",
+			errSocketActivation, opts.ListenFDs)
 	}
 
 	names := strings.Split(opts.ListenFDNames, ":")
 	if len(names) != 1 {
-		return nil, fmt.Errorf("expected LISTEN_FDNAMES to set 1 name, but was '%s'", opts.ListenFDNames)
+		return nil, fmt.Errorf("%w: expected LISTEN_FDNAMES to set 1 name, but was '%s'",
+			errSocketActivation, opts.ListenFDNames)
 	}
 	name := names[0]
 
@@ -218,13 +229,13 @@ func activationListener(opts *options) (*net.UnixListener, error) {
 
 	l, err := net.FileListener(f)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create listener: %w", err)
+		return nil, err
 	}
 	f.Close()
 
 	unixListener, ok := l.(*net.UnixListener)
 	if !ok {
-		return nil, errors.New("must be a unix socket")
+		return nil, errNotUnixSocket
 	}
 
 	return unixListener, nil
@@ -238,12 +249,12 @@ func activationConnection(opts *options) (*net.UnixConn, error) {
 
 	conn, err := net.FileConn(f)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create connection: %w", err)
+		return nil, err
 	}
 
 	unixConn, ok := conn.(*net.UnixConn)
 	if !ok {
-		return nil, errors.New("must be a unix socket")
+		return nil, errNotUnixSocket
 	}
 
 	return unixConn, nil
