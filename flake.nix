@@ -29,6 +29,11 @@
         systemd-age-creds = final.callPackage ./nix/systemd-age-creds.nix { };
       };
 
+      devShells = {
+        aarch64-linux.default = callPackage.aarch64-linux ./nix/shell.nix { };
+        x86_64-linux.default = callPackage.x86_64-linux ./nix/shell.nix { };
+      };
+
       nixosModules.default = {
         imports = [ ./nix/nixos.nix ];
         nixpkgs.overlays = [ self.overlays.default ];
