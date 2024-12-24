@@ -18,9 +18,11 @@ func TestParsePeerNameOk(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	if unit != "age-creds-test.service" {
 		t.Errorf("unit = %s; want age-creds-test.service", unit)
 	}
+
 	if cred != "foo" {
 		t.Errorf("cred = %s; want foo", cred)
 	}
@@ -53,16 +55,19 @@ func TestActivationListener(t *testing.T) {
 		ListenFDNames:  "foo.sock",
 		ListenFDsStart: int(f1.Fd()),
 	}
+
 	ln2, err := activationListener(opts)
 	if err != nil {
 		t.Error(err)
 	}
+
 	defer ln2.Close()
 
 	f2, err := ln2.File()
 	if err != nil {
 		t.Error(err)
 	}
+
 	if f1.Fd() != f2.Fd() {
 		t.Errorf("fd = %d; want %d", f2.Fd(), f1.Fd())
 	}
@@ -91,11 +96,13 @@ func TestStartAccept(t *testing.T) {
 		t.Error(err)
 		return
 	}
+
 	conn, err := ln.AcceptUnix()
 	if err != nil {
 		t.Error(err)
 		return
 	}
+
 	defer conn.Close()
 
 	f, err := conn.File()
@@ -113,6 +120,7 @@ func TestStartAccept(t *testing.T) {
 		ListenFDNames:  "connection",
 		ListenFDsStart: int(f.Fd()),
 	}
+
 	err = start(opts)
 	if err != nil {
 		t.Error(err)
@@ -141,6 +149,7 @@ func readCred(credID string, socketPath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w: read err: %w", errReadCred, err)
 	}
+
 	if len(buf) == 0 {
 		return "", fmt.Errorf("%w: zero bytes", errReadCred)
 	}

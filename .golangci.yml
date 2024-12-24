@@ -11,4 +11,3 @@ linters:
     - revive
     - stylecheck
     - varnamelen
-    - wsl

@@ -65,11 +65,13 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 			if err := fs.Set(flagName, val); err != nil {
 				return nil, fmt.Errorf("falg set error: %w", err)
 			}
+
 			os.Unsetenv(envName)
 		}
 	}
 
 	fs.SetOutput(out)
+
 	err := fs.Parse(args)
 	if err != nil {
 		return &opts, fmt.Errorf("argument error: %w", err)
@@ -78,6 +80,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	if opts.ShowVersion {
 		return &opts, nil
 	}
+
 	if opts.Dir == "" {
 		fs.Usage()
 		return &opts, errMissingCredentialsDir
@@ -131,6 +134,7 @@ func start(opts *options) error {
 		if err != nil {
 			return fmt.Errorf("failed to accept connection: %w", err)
 		}
+
 		return handleConnection(conn, opts.Dir)
 	} else {
 		ln, err := activationListener(opts)
@@ -147,6 +151,7 @@ func start(opts *options) error {
 				fmt.Printf("Failed to accept connection: %v\n", err)
 				continue
 			}
+
 			go func(conn *net.UnixConn, opts *options) {
 				err := handleConnection(conn, opts.Dir)
 				if err != nil {
@@ -169,10 +174,12 @@ func handleConnection(conn *net.UnixConn, directory string) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Printf("%s requesting '%s' credential\n", unitName, credID)
 
 	filename := credID + ".age"
 	path := filepath.Join(directory, filename)
+
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read credential file %s: %w", path, err)
@@ -192,6 +199,7 @@ func parsePeerName(s string) (string, string, error) {
 	if matches == nil {
 		return "", "", fmt.Errorf("%w: %s", errInvalidPeerName, s)
 	}
+
 	return matches[1], matches[2], nil
 }
 
@@ -213,6 +221,7 @@ func activationFile(opts *options) (*os.File, error) {
 		return nil, fmt.Errorf("%w: expected LISTEN_FDNAMES to set 1 name, but was '%s'",
 			errSocketActivation, opts.ListenFDNames)
 	}
+
 	name := names[0]
 
 	syscall.CloseOnExec(fd)
@@ -231,6 +240,7 @@ func activationListener(opts *options) (*net.UnixListener, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create listener: %w", err)
 	}
+
 	f.Close()
 
 	unixListener, ok := l.(*net.UnixListener)
