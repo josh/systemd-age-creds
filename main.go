@@ -131,35 +131,43 @@ func main() {
 
 func start(opts *options) error {
 	if opts.Accept {
-		conn, err := activationConnection(opts)
+		return startConnection(opts)
+	}
+
+	return startListener(opts)
+}
+
+func startConnection(opts *options) error {
+	conn, err := activationConnection(opts)
+	if err != nil {
+		return fmt.Errorf("failed to accept connection: %w", err)
+	}
+
+	return handleConnection(conn, opts.Dir)
+}
+
+func startListener(opts *options) error {
+	ln, err := activationListener(opts)
+	if err != nil {
+		return err
+	}
+	defer ln.Close()
+
+	fmt.Printf("Listening on %s\n", ln.Addr())
+
+	for {
+		conn, err := ln.AcceptUnix()
 		if err != nil {
-			return fmt.Errorf("failed to accept connection: %w", err)
+			fmt.Printf("Failed to accept connection: %v\n", err)
+			continue
 		}
 
-		return handleConnection(conn, opts.Dir)
-	} else {
-		ln, err := activationListener(opts)
-		if err != nil {
-			return err
-		}
-		defer ln.Close()
-
-		fmt.Printf("Listening on %s\n", ln.Addr())
-
-		for {
-			conn, err := ln.AcceptUnix()
+		go func(conn *net.UnixConn, opts *options) {
+			err := handleConnection(conn, opts.Dir)
 			if err != nil {
-				fmt.Printf("Failed to accept connection: %v\n", err)
-				continue
+				fmt.Printf("ERROR: %v\n", err)
 			}
-
-			go func(conn *net.UnixConn, opts *options) {
-				err := handleConnection(conn, opts.Dir)
-				if err != nil {
-					fmt.Printf("ERROR: %v\n", err)
-				}
-			}(conn, opts)
-		}
+		}(conn, opts)
 	}
 }
 
