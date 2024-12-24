@@ -1,0 +1,17 @@
+linters:
+  enable-all: true
+  disable:
+    - err113
+    - exhaustruct
+    - exportloopref
+    - forbidigo
+    - gochecknoglobals
+    - mnd
+    - nestif
+    - nlreturn
+    - paralleltest
+    - revive
+    - stylecheck
+    - varnamelen
+    - wrapcheck
+    - wsl
