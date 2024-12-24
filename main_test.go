@@ -3,7 +3,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"io"
 	"net"
 	"os"
@@ -33,7 +33,7 @@ func TestParsePeerNameBlank(t *testing.T) {
 }
 
 func TestActivationListener(t *testing.T) {
-	socketPath := fmt.Sprintf("%s/foo.sock", t.TempDir())
+	socketPath := t.TempDir() + "/foo.sock"
 
 	ln1, err := net.Listen("unix", socketPath)
 	if err != nil {
@@ -68,7 +68,7 @@ func TestActivationListener(t *testing.T) {
 }
 
 func TestStartAccept(t *testing.T) {
-	sname := fmt.Sprintf("%s/connection", t.TempDir())
+	sname := t.TempDir() + "/connection"
 	saddr := &net.UnixAddr{Name: sname, Net: "unix"}
 
 	ln, err := net.ListenUnix("unix", saddr)
@@ -124,7 +124,7 @@ func testDir() string {
 }
 
 func readCred(credID string, socketPath string) (string, error) {
-	lname := fmt.Sprintf("@f4b4692a71d9438e/unit/test.service/%s", credID)
+	lname := "@f4b4692a71d9438e/unit/test.service/" + credID
 	laddr := &net.UnixAddr{Name: lname, Net: "unix"}
 	raddr := &net.UnixAddr{Name: socketPath, Net: "unix"}
 
@@ -139,7 +139,7 @@ func readCred(credID string, socketPath string) (string, error) {
 		return "", err
 	}
 	if len(buf) == 0 {
-		return "", fmt.Errorf("read 0 bytes")
+		return "", errors.New("read 0 bytes")
 	}
 
 	return string(buf), nil

@@ -80,12 +80,12 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	}
 	if opts.Dir == "" {
 		fs.Usage()
-		return &opts, fmt.Errorf("missing credentials directory")
+		return &opts, errors.New("missing credentials directory")
 	}
 
 	if opts.Identity == "" {
 		fs.Usage()
-		return &opts, fmt.Errorf("missing age identity file")
+		return &opts, errors.New("missing age identity file")
 	}
 
 	if opts.ListenFDNames == "connection" {
@@ -154,7 +154,7 @@ func handleConnection(conn *net.UnixConn, directory string) error {
 
 	unixAddr, ok := conn.RemoteAddr().(*net.UnixAddr)
 	if !ok {
-		return fmt.Errorf("client must be a unix addr")
+		return errors.New("client must be a unix addr")
 	}
 
 	unitName, credID, err := parsePeerName(unixAddr.Name)
@@ -163,7 +163,7 @@ func handleConnection(conn *net.UnixConn, directory string) error {
 	}
 	fmt.Printf("%s requesting '%s' credential\n", unitName, credID)
 
-	filename := fmt.Sprintf("%s.age", credID)
+	filename := credID + ".age"
 	path := filepath.Join(directory, filename)
 	content, err := os.ReadFile(path)
 	if err != nil {
@@ -224,7 +224,7 @@ func activationListener(opts *options) (*net.UnixListener, error) {
 
 	unixListener, ok := l.(*net.UnixListener)
 	if !ok {
-		return nil, fmt.Errorf("must be a unix socket")
+		return nil, errors.New("must be a unix socket")
 	}
 
 	return unixListener, nil
@@ -243,7 +243,7 @@ func activationConnection(opts *options) (*net.UnixConn, error) {
 
 	unixConn, ok := conn.(*net.UnixConn)
 	if !ok {
-		return nil, fmt.Errorf("must be a unix socket")
+		return nil, errors.New("must be a unix socket")
 	}
 
 	return unixConn, nil
