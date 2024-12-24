@@ -55,6 +55,7 @@ func TestActivationListener(t *testing.T) {
 		t.Error(err)
 	}
 
+	//nolint:exhaustruct
 	opts := &options{
 		ListenPID:      os.Getpid(),
 		ListenFDs:      1,
@@ -120,6 +121,7 @@ func TestStartAccept(t *testing.T) {
 	}
 	defer f.Close()
 
+	//nolint:exhaustruct
 	opts := &options{
 		Dir:            testDir(),
 		Accept:         true,
