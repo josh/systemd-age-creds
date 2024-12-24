@@ -5,7 +5,6 @@ linters:
     - exportloopref
     - forbidigo
     - gochecknoglobals
-    - mnd
     - nestif
     - nlreturn
     - paralleltest

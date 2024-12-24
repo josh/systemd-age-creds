@@ -108,7 +108,7 @@ func main() {
 	if errors.Is(err, flag.ErrHelp) {
 		os.Exit(0)
 	} else if err != nil {
-		os.Exit(2)
+		os.Exit(2) //nolint:mnd
 	}
 
 	if opts.ShowVersion {
