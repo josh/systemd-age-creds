@@ -25,7 +25,7 @@
         x86_64-linux.default = self.packages.x86_64-linux.systemd-age-creds;
       };
 
-      overlays.default = final: prev: {
+      overlays.default = final: _prev: {
         systemd-age-creds = final.callPackage ./nix/systemd-age-creds.nix { };
       };
 
