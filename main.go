@@ -23,6 +23,7 @@ var (
 	LISTEN_FDS_START = 3
 )
 
+//nolint:gochecknoglobals
 var Version = "0.0.0"
 
 type options struct {
@@ -35,16 +36,6 @@ type options struct {
 	ListenFDsStart int
 	ListenPID      int
 	ShowVersion    bool
-}
-
-var envFlags = map[string]string{
-	"AGE_BIN":          "age-bin",
-	"AGE_DIR":          "dir",
-	"AGE_IDENTITY":     "identity",
-	"LISTEN_PID":       "listen-pid",
-	"LISTEN_FDS_START": "listen-fds-start",
-	"LISTEN_FDS":       "listen-fds",
-	"LISTEN_FDNAMES":   "listen-fdnames",
 }
 
 func parseFlags(progname string, args []string, out io.Writer) (*options, error) {
@@ -60,6 +51,16 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	fs.IntVar(&opts.ListenFDsStart, "listen-fds-start", LISTEN_FDS_START, "intended start of LISTEN_FDS")
 	fs.IntVar(&opts.ListenPID, "listen-pid", 0, "intended PID of listener")
 	fs.BoolVar(&opts.ShowVersion, "version", false, "print version and exit")
+
+	envFlags := map[string]string{
+		"AGE_BIN":          "age-bin",
+		"AGE_DIR":          "dir",
+		"AGE_IDENTITY":     "identity",
+		"LISTEN_PID":       "listen-pid",
+		"LISTEN_FDS_START": "listen-fds-start",
+		"LISTEN_FDS":       "listen-fds",
+		"LISTEN_FDNAMES":   "listen-fdnames",
+	}
 
 	for envName, flagName := range envFlags {
 		if val, ok := os.LookupEnv(envName); ok {
