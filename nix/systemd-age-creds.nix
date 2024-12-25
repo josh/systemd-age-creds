@@ -24,7 +24,7 @@ buildGoModule {
     "-s"
     "-w"
     "-X main.Version=${version}"
-    "-X main.AGE_BIN=${lib.getExe age}"
+    "-X main.AgeBin=${lib.getExe age}"
   ];
 
   nativeBuildInputs = [ age ];
