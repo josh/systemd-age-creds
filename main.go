@@ -211,7 +211,7 @@ func ageDecrypt(opts *options, path string) ([]byte, error) {
 	cmd.Stdout = &stdout
 
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("age failed to decrypt '%s'", path)
+		return nil, fmt.Errorf("age failed to decrypt '%s': %w", path, err)
 	}
 
 	return stdout.Bytes(), nil
@@ -258,7 +258,7 @@ func activationListener(opts *options) (*net.UnixListener, error) {
 
 	l, err := net.FileListener(f)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create listener: %w", err)
+		return nil, err
 	}
 
 	f.Close()
@@ -279,7 +279,7 @@ func activationConnection(opts *options) (*net.UnixConn, error) {
 
 	conn, err := net.FileConn(f)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create connection: %w", err)
+		return nil, err
 	}
 
 	unixConn, ok := conn.(*net.UnixConn)
