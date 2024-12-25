@@ -13,8 +13,6 @@ import (
 )
 
 func TestParsePeerNameOk(t *testing.T) {
-	t.Parallel()
-
 	unit, cred, err := parsePeerName("@f4b4692a71d9438e/unit/age-creds-test.service/foo")
 	if err != nil {
 		t.Error(err)
@@ -30,8 +28,6 @@ func TestParsePeerNameOk(t *testing.T) {
 }
 
 func TestParsePeerNameBlank(t *testing.T) {
-	t.Parallel()
-
 	_, _, err := parsePeerName("")
 	if err == nil {
 		t.Error("expected parse error")
