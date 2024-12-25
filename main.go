@@ -196,7 +196,6 @@ func handleConnection(conn *net.UnixConn, opts *options) error {
 		return fmt.Errorf("failed to decrypt credential file %s: %w", path, err)
 	}
 
-	// Write the data back to the connection
 	_, err = conn.Write(data)
 	if err != nil {
 		return fmt.Errorf("failed to write credential: %w", err)
