@@ -91,12 +91,12 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 
 	if opts.Dir == "" {
 		fs.Usage()
-		return &opts, errMissingCredentialsDir
+		return &opts, errors.New("missing credentials directory")
 	}
 
 	if opts.Identity == "" {
 		fs.Usage()
-		return &opts, errMissingAgeIdentityFile
+		return &opts, errors.New("missing age identity file")
 	}
 
 	if opts.ListenFDNames == "connection" {
@@ -105,14 +105,6 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 
 	return &opts, nil
 }
-
-var (
-	errInvalidPeerName        = errors.New("invalid peer name")
-	errMissingAgeIdentityFile = errors.New("missing age identity file")
-	errMissingCredentialsDir  = errors.New("missing credentials directory")
-	errNotUnixSocket          = errors.New("must be a unix socket")
-	errSocketActivation       = errors.New("socket activation error")
-)
 
 func main() {
 	opts, err := parseFlags(os.Args[0], os.Args[1:], os.Stderr)
@@ -213,7 +205,7 @@ func handleConnection(conn *net.UnixConn, directory string) error {
 func parsePeerName(s string) (string, string, error) {
 	matches := regexp.MustCompile("^@.*/unit/(.*)/(.*)$").FindStringSubmatch(s)
 	if matches == nil {
-		return "", "", fmt.Errorf("%w: %s", errInvalidPeerName, s)
+		return "", "", fmt.Errorf("invalid peer name: %s", s)
 	}
 
 	return matches[1], matches[2], nil
@@ -221,21 +213,18 @@ func parsePeerName(s string) (string, string, error) {
 
 func activationFile(opts *options) (*os.File, error) {
 	if opts.ListenPID != os.Getpid() {
-		return nil, fmt.Errorf("%w: expected LISTEN_PID=%d, but was %d",
-			errSocketActivation, os.Getpid(), opts.ListenPID)
+		return nil, fmt.Errorf("expected LISTEN_PID=%d, but was %d", os.Getpid(), opts.ListenPID)
 	}
 
 	fd := opts.ListenFDsStart
 
 	if opts.ListenFDs != 1 {
-		return nil, fmt.Errorf("%w: expected LISTEN_FDS=1, but was %d",
-			errSocketActivation, opts.ListenFDs)
+		return nil, fmt.Errorf("expected LISTEN_FDS=1, but was %d", opts.ListenFDs)
 	}
 
 	names := strings.Split(opts.ListenFDNames, ":")
 	if len(names) != 1 {
-		return nil, fmt.Errorf("%w: expected LISTEN_FDNAMES to set 1 name, but was '%s'",
-			errSocketActivation, opts.ListenFDNames)
+		return nil, fmt.Errorf("expected LISTEN_FDNAMES to set 1 name, but was '%s'", opts.ListenFDNames)
 	}
 
 	name := names[0]
@@ -261,7 +250,7 @@ func activationListener(opts *options) (*net.UnixListener, error) {
 
 	unixListener, ok := l.(*net.UnixListener)
 	if !ok {
-		return nil, errNotUnixSocket
+		return nil, errors.New("must be a unix socket")
 	}
 
 	return unixListener, nil
@@ -280,7 +269,7 @@ func activationConnection(opts *options) (*net.UnixConn, error) {
 
 	unixConn, ok := conn.(*net.UnixConn)
 	if !ok {
-		return nil, errNotUnixSocket
+		return nil, errors.New("must be a unix socket")
 	}
 
 	return unixConn, nil
