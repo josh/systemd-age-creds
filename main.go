@@ -39,6 +39,12 @@ type options struct {
 func parseFlags(progname string, args []string, out io.Writer) (*options, error) {
 	var opts options
 
+	if AGE_BIN == "" {
+		if path, err := exec.LookPath("age"); err == nil {
+			AGE_BIN = path
+		}
+	}
+
 	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
 	fs.StringVar(&opts.AgeBin, "age-bin", AGE_BIN, "path to age binary")
 	fs.BoolVar(&opts.Accept, "accept", false, "assume connection already accepted")
