@@ -18,6 +18,12 @@ in
       description = "The package to use for systemd-age-creds.";
     };
 
+    ageBin = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = "The path to the age binary.";
+    };
+
     identity = lib.mkOption {
       type = lib.types.path;
       description = "The path to the age decryption identity.";
@@ -69,7 +75,7 @@ in
           Environment = [
             "AGE_DIR=${cfg.directory}"
             "AGE_IDENTITY=${cfg.identity}"
-          ];
+          ] ++ (lib.lists.optional (cfg.ageBin != null) "AGE_BIN=${cfg.ageBin}");
           ExecStart = "${lib.getExe cfg.package}";
         };
       };
