@@ -39,7 +39,6 @@ func TestParsePeerNameBlank(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest
 func TestActivationListener(t *testing.T) {
 	socketPath := t.TempDir() + "/foo.sock"
 
@@ -54,7 +53,6 @@ func TestActivationListener(t *testing.T) {
 		t.Error(err)
 	}
 
-	//nolint:exhaustruct
 	opts := &options{
 		ListenPID:      os.Getpid(),
 		ListenFDs:      1,
@@ -79,7 +77,6 @@ func TestActivationListener(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest
 func TestStartAccept(t *testing.T) {
 	sname := t.TempDir() + "/connection"
 	saddr := &net.UnixAddr{Name: sname, Net: "unix"}
@@ -119,7 +116,6 @@ func TestStartAccept(t *testing.T) {
 	}
 	defer f.Close()
 
-	//nolint:exhaustruct
 	opts := &options{
 		Dir:            testDir(),
 		Accept:         true,

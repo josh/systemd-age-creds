@@ -15,7 +15,6 @@ import (
 	"syscall"
 )
 
-//nolint:all
 var (
 	AGE_BIN          = ""
 	AGE_DIR          = ""
@@ -23,7 +22,6 @@ var (
 	LISTEN_FDS_START = 3
 )
 
-//nolint:gochecknoglobals
 var Version = "0.0.0"
 
 type options struct {
@@ -113,7 +111,7 @@ func main() {
 	if errors.Is(err, flag.ErrHelp) {
 		os.Exit(0)
 	} else if err != nil {
-		os.Exit(2) //nolint:mnd
+		os.Exit(2)
 	}
 
 	if opts.ShowVersion {
