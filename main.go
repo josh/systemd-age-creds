@@ -81,7 +81,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 
 	err := fs.Parse(args)
 	if err != nil {
-		return &opts, fmt.Errorf("argument error: %w", err)
+		return &opts, err
 	}
 
 	if opts.ShowVersion {

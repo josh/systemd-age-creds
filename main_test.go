@@ -3,7 +3,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -136,7 +135,6 @@ func testDir() string {
 	return filepath.Join(wd, "test")
 }
 
-var errReadCred = errors.New("could not read cred")
 
 func readCred(credID string, socketPath string) (string, error) {
 	lname := "@f4b4692a71d9438e/unit/test.service/" + credID
@@ -145,17 +143,17 @@ func readCred(credID string, socketPath string) (string, error) {
 
 	conn, err := net.DialUnix("unix", laddr, raddr)
 	if err != nil {
-		return "", fmt.Errorf("%w: dail error: %w", errReadCred, err)
+		return "", err
 	}
 	defer conn.Close()
 
 	buf, err := io.ReadAll(conn)
 	if err != nil {
-		return "", fmt.Errorf("%w: read err: %w", errReadCred, err)
+		return "", err
 	}
 
 	if len(buf) == 0 {
-		return "", fmt.Errorf("%w: zero bytes", errReadCred)
+		return "", fmt.Errorf("read zero bytes")
 	}
 
 	return string(buf), nil
