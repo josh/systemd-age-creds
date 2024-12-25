@@ -14,16 +14,18 @@ let
   credNames = builtins.attrNames creds;
   credCount = builtins.length credNames;
 
+  pubkey = "age18r92c0df2eqmsuvcuvx8c5f9rmfql8xf6klmq8qcpzqx6g2y8ukssdu3mz";
+
   credstoreDir =
     let
       commands =
         [ "mkdir $out" ]
         ++ (lib.attrsets.mapAttrsToList (name: value: ''
-          echo "${value}" >$out/${name}.age
+          echo "${value}" | age -r ${pubkey} >$out/${name}.age
         '') creds);
       script = lib.concatStringsSep "\n" commands;
     in
-    runCommandLocal "credstore" { } script;
+    runCommandLocal "credstore" { buildInputs = [ age ]; } script;
 
   identityFile =
     runCommandLocal "identity"
