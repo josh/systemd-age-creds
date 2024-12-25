@@ -206,7 +206,7 @@ func handleConnection(conn *net.UnixConn, opts *options) error {
 }
 
 func ageDecrypt(opts *options, path string) ([]byte, error) {
-	cmd := exec.Command(opts.AgeBin, "--decrypt", "-i", opts.Identity, path)
+	cmd := exec.Command(opts.AgeBin, "--decrypt", "--identity", opts.Identity, path)
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
