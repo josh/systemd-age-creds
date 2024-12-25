@@ -111,6 +111,7 @@ func main() {
 	if errors.Is(err, flag.ErrHelp) {
 		os.Exit(0)
 	} else if err != nil {
+		fmt.Printf("%v", err)
 		os.Exit(2)
 	}
 
