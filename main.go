@@ -63,7 +63,8 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	for envName, flagName := range envFlags {
 		if val, ok := os.LookupEnv(envName); ok {
 			if err := fs.Set(flagName, val); err != nil {
-				return nil, fmt.Errorf("falg set error: %w", err)
+				fs.Usage()
+				return &opts, fmt.Errorf("invalid value \"%s\" for flag -%s: %w", val, flagName, err)
 			}
 
 			os.Unsetenv(envName)
