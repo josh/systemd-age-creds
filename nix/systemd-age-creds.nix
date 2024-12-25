@@ -27,6 +27,8 @@ buildGoModule {
     "-X main.AGE_BIN=${lib.getExe age}"
   ];
 
+  nativeBuildInputs = [ age ];
+
   meta = {
     description = "Load age encrypted credentials in systemd units";
     mainProgram = "systemd-age-creds";
