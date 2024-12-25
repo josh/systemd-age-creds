@@ -132,16 +132,9 @@ func TestStartAccept(t *testing.T) {
 }
 
 func testOptions() (*options, error) {
-	var ageBin string
-	if AGE_BIN != "" {
-		ageBin = AGE_BIN
-	} else {
-		path, err := exec.LookPath("age")
-		if err != nil {
-			return nil, err
-		}
-
-		ageBin = path
+	ageBin, err := exec.LookPath("age")
+	if err != nil {
+		return nil, err
 	}
 
 	wd, err := os.Getwd()

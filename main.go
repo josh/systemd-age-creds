@@ -17,14 +17,14 @@ import (
 	"syscall"
 )
 
+// constants settable at build time
 var (
-	AGE_BIN          = ""
-	AGE_DIR          = ""
-	AGE_IDENTITY     = ""
-	LISTEN_FDS_START = 3
+	AgeBin         = ""
+	AgeDir         = ""
+	AgeIdentity    = ""
+	ListenFDsStart = 3
+	Version        = "0.0.0"
 )
-
-var Version = "0.0.0"
 
 type options struct {
 	AgeBin         string
@@ -41,20 +41,21 @@ type options struct {
 func parseFlags(progname string, args []string, out io.Writer) (*options, error) {
 	var opts options
 
-	if AGE_BIN == "" {
+	defaultAgeBin := AgeBin
+	if defaultAgeBin == "" {
 		if path, err := exec.LookPath("age"); err == nil {
-			AGE_BIN = path
+			defaultAgeBin = path
 		}
 	}
 
 	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
-	fs.StringVar(&opts.AgeBin, "age-bin", AGE_BIN, "path to age binary")
+	fs.StringVar(&opts.AgeBin, "age-bin", defaultAgeBin, "path to age binary")
 	fs.BoolVar(&opts.Accept, "accept", false, "assume connection already accepted")
-	fs.StringVar(&opts.Dir, "dir", AGE_DIR, "directory to store credentials in")
-	fs.StringVar(&opts.Identity, "identity", AGE_IDENTITY, "age identity file")
+	fs.StringVar(&opts.Dir, "dir", AgeDir, "directory to store credentials in")
+	fs.StringVar(&opts.Identity, "identity", AgeIdentity, "age identity file")
 	fs.StringVar(&opts.ListenFDNames, "listen-fdnames", "", "intended LISTEN_FDNAMES")
 	fs.IntVar(&opts.ListenFDs, "listen-fds", 0, "intended number of LISTEN_FDS")
-	fs.IntVar(&opts.ListenFDsStart, "listen-fds-start", LISTEN_FDS_START, "intended start of LISTEN_FDS")
+	fs.IntVar(&opts.ListenFDsStart, "listen-fds-start", ListenFDsStart, "intended start of LISTEN_FDS")
 	fs.IntVar(&opts.ListenPID, "listen-pid", 0, "intended PID of listener")
 	fs.BoolVar(&opts.ShowVersion, "version", false, "print version and exit")
 
