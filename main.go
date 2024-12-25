@@ -143,7 +143,7 @@ func startConnection(opts *options) error {
 		return fmt.Errorf("failed to accept connection: %w", err)
 	}
 
-	return handleConnection(conn, opts.Dir)
+	return handleConnection(conn, opts)
 }
 
 func startListener(opts *options) error {
@@ -163,7 +163,7 @@ func startListener(opts *options) error {
 		}
 
 		go func(conn *net.UnixConn, opts *options) {
-			err := handleConnection(conn, opts.Dir)
+			err := handleConnection(conn, opts)
 			if err != nil {
 				fmt.Printf("ERROR: %v\n", err)
 			}
@@ -171,7 +171,7 @@ func startListener(opts *options) error {
 	}
 }
 
-func handleConnection(conn *net.UnixConn, directory string) error {
+func handleConnection(conn *net.UnixConn, opts *options) error {
 	defer conn.Close()
 
 	unixAddr, ok := conn.RemoteAddr().(*net.UnixAddr)
@@ -187,7 +187,7 @@ func handleConnection(conn *net.UnixConn, directory string) error {
 	fmt.Printf("%s requesting '%s' credential\n", unitName, credID)
 
 	filename := credID + ".age"
-	path := filepath.Join(directory, filename)
+	path := filepath.Join(opts.Dir, filename)
 
 	content, err := os.ReadFile(path)
 	if err != nil {
