@@ -14,8 +14,6 @@ let
   credNames = builtins.attrNames creds;
   credCount = builtins.length credNames;
 
-  pubkey = "age18r92c0df2eqmsuvcuvx8c5f9rmfql8xf6klmq8qcpzqx6g2y8ukssdu3mz";
-
   credstoreDir =
     let
       commands =
@@ -27,14 +25,11 @@ let
     in
     runCommandLocal "credstore" { buildInputs = [ age ]; } script;
 
-  keys =
-    runCommandLocal "age-keygen"
-      { buildInputs = [ age ]; }
-      ''
-        mkdir $out
-        age-keygen -o $out/identity
-        age-keygen -y -o $out/recipients $out/identity
-       '';
+  keys = runCommandLocal "age-keygen" { buildInputs = [ age ]; } ''
+    mkdir $out
+    age-keygen -o $out/identity
+    age-keygen -y -o $out/recipients $out/identity
+  '';
 
   copyCredsScript = writeShellScript "export-creds.bash" ''
     ${coreutils}/bin/mkdir /tmp/age-creds-test
