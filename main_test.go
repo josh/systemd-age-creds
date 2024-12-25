@@ -131,6 +131,62 @@ func TestStartAccept(t *testing.T) {
 	}
 }
 
+func TestStartAcceptWrongIdentity(t *testing.T) {
+	sname := t.TempDir() + "/connection"
+	saddr := &net.UnixAddr{Name: sname, Net: "unix"}
+
+	ln, err := net.ListenUnix("unix", saddr)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer ln.Close()
+
+	go func() {
+		_, err := readCred("foo", sname)
+		if err == nil {
+			t.Errorf("expected readCred to fail, but was ok")
+		}
+	}()
+
+	err = ln.SetDeadline(time.Now().Add(1 * time.Second))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	conn, err := ln.AcceptUnix()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer conn.Close()
+
+	f, err := conn.File()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer f.Close()
+
+	opts, err := testOptions()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	opts.Identity = filepath.Join(opts.Dir, "test", "key2.txt")
+	opts.Accept = true
+	opts.ListenFDNames = "connection"
+	opts.ListenFDsStart = int(f.Fd())
+
+	err = start(opts)
+	if err == nil {
+		t.Errorf("expected server to fail to decrypt cred, but was ok")
+	}
+}
+
 func testOptions() (*options, error) {
 	ageBin, err := exec.LookPath("age")
 	if err != nil {
