@@ -21,20 +21,20 @@ let
       commands =
         [ "mkdir $out" ]
         ++ (lib.attrsets.mapAttrsToList (name: value: ''
-          echo "${value}" | age -r ${pubkey} >$out/${name}.age
+          echo "${value}" | age -R ${keys}/recipients >$out/${name}.age
         '') creds);
       script = lib.concatStringsSep "\n" commands;
     in
     runCommandLocal "credstore" { buildInputs = [ age ]; } script;
 
-  identityFile =
-    runCommandLocal "identity"
-      {
-        buildInputs = [ age ];
-      }
+  keys =
+    runCommandLocal "age-keygen"
+      { buildInputs = [ age ]; }
       ''
-        age-keygen -o $out
-      '';
+        mkdir $out
+        age-keygen -o $out/identity
+        age-keygen -y -o $out/recipients $out/identity
+       '';
 
   copyCredsScript = writeShellScript "export-creds.bash" ''
     ${coreutils}/bin/mkdir /tmp/age-creds-test
@@ -57,7 +57,7 @@ testers.runNixOSTest {
 
       services.systemd-age-creds = {
         enable = true;
-        identity = identityFile;
+        identity = "${keys}/identity";
         directory = credstoreDir;
         inherit socketAccept;
       };
