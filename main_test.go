@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -48,12 +49,15 @@ func TestActivationListener(t *testing.T) {
 		t.Error(err)
 	}
 
-	opts := &options{
-		ListenPID:      os.Getpid(),
-		ListenFDs:      1,
-		ListenFDNames:  "foo.sock",
-		ListenFDsStart: int(f1.Fd()),
+	opts, err := testOptions()
+	if err != nil {
+		t.Error(err)
+		return
 	}
+
+	opts.Accept = false
+	opts.ListenFDNames = "foo.sock"
+	opts.ListenFDsStart = int(f1.Fd())
 
 	ln2, err := activationListener(opts)
 	if err != nil {
@@ -111,14 +115,15 @@ func TestStartAccept(t *testing.T) {
 	}
 	defer f.Close()
 
-	opts := &options{
-		Dir:            testDir(),
-		Accept:         true,
-		ListenPID:      os.Getpid(),
-		ListenFDs:      1,
-		ListenFDNames:  "connection",
-		ListenFDsStart: int(f.Fd()),
+	opts, err := testOptions()
+	if err != nil {
+		t.Error(err)
+		return
 	}
+
+	opts.Accept = true
+	opts.ListenFDNames = "connection"
+	opts.ListenFDsStart = int(f.Fd())
 
 	err = start(opts)
 	if err != nil {
@@ -126,11 +131,38 @@ func TestStartAccept(t *testing.T) {
 	}
 }
 
-func testDir() string {
-	wd, _ := os.Getwd()
-	return filepath.Join(wd, "test")
-}
+func testOptions() (*options, error) {
+	var ageBin string
+	if AGE_BIN != "" {
+		ageBin = AGE_BIN
+	} else {
+		path, err := exec.LookPath("age")
+		if err != nil {
+			return nil, err
+		}
 
+		ageBin = path
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	opts := options{
+		AgeBin:         ageBin,
+		Identity:       filepath.Join(wd, "test", "key.txt"),
+		Dir:            filepath.Join(wd, "test"),
+		Accept:         false,
+		ListenPID:      os.Getpid(),
+		ListenFDs:      1,
+		ListenFDNames:  "foo.sock",
+		ListenFDsStart: 3,
+		ShowVersion:    false,
+	}
+
+	return &opts, nil
+}
 
 func readCred(credID string, socketPath string) (string, error) {
 	lname := "@f4b4692a71d9438e/unit/test.service/" + credID
