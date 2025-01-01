@@ -4,7 +4,7 @@
   age,
 }:
 let
-  version = "0.0.0";
+  version = "0.1.0";
 
   # https://github.com/NixOS/nixpkgs/pull/359641
   enableCGO =
