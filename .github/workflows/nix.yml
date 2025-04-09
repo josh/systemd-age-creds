@@ -23,8 +23,6 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
-
       - uses: DeterminateSystems/nix-installer-action@main
 
       - uses: cachix/cachix-action@v16
@@ -32,8 +30,6 @@ jobs:
           name: josh
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
-      - uses: DeterminateSystems/flake-checker-action@v9
-
       - name: Check flake
         run: |
-          nix flake check --verbose --print-build-logs
+          nix flake check --keep-going --print-build-logs github:${{ github.repository }}/${{ github.sha }}
