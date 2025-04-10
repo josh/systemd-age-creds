@@ -52,7 +52,27 @@ LoadCredential=foobar:%t/systemd-age-creds.sock
 
 ### Nix
 
-TK explain Nix usage
+This project was originally written to meet the needs of [NixOS](https://nixos.org/) systems. However, nothing about the service itself is dependent on Nix. But if you are using NixOS, you can use this repository as a flake input to get access to NixOS modules that make defining the necessary system units easier.
+
+```nix
+{ config, inputs }: {
+  imports = [ inputs.systemd-age-creds.nixosModules.default ];
+
+  services.systemd-age-creds = {
+    enable = true;
+    identity = "/path/to/age/key.txt";
+    directory = ./path/to/secrets;
+  };
+
+  systemd.services.example = {
+    serviceConfig = {
+      LoadCredential = [
+        "foobar:${config.services.systemd-age-creds.socket}"
+      ];
+    };
+  };
+}
+```
 
 ## See Also
 
