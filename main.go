@@ -4,6 +4,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"regexp"
 	"strings"
 	"syscall"
+	"time"
 )
 
 // constants settable at build time
@@ -29,6 +31,7 @@ var (
 type options struct {
 	AgeBin         string
 	Accept         bool
+	Timeout        time.Duration
 	Dir            string
 	Identity       string
 	ListenFDNames  string
@@ -51,6 +54,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
 	fs.StringVar(&opts.AgeBin, "age-bin", defaultAgeBin, "path to age binary")
 	fs.BoolVar(&opts.Accept, "accept", false, "assume connection already accepted")
+	fs.DurationVar(&opts.Timeout, "timeout", 10*time.Second, "credential load timeout")
 	fs.StringVar(&opts.Dir, "dir", AgeDir, "directory to store credentials in")
 	fs.StringVar(&opts.Identity, "identity", AgeIdentity, "age identity file")
 	fs.StringVar(&opts.ListenFDNames, "listen-fdnames", "", "intended LISTEN_FDNAMES")
@@ -63,6 +67,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 		"AGE_BIN":          "age-bin",
 		"AGE_DIR":          "dir",
 		"AGE_IDENTITY":     "identity",
+		"AGE_TIMEOUT":      "timeout",
 		"LISTEN_PID":       "listen-pid",
 		"LISTEN_FDS_START": "listen-fds-start",
 		"LISTEN_FDS":       "listen-fds",
@@ -145,7 +150,13 @@ func startConnection(opts *options) error {
 		return fmt.Errorf("failed to accept connection: %w", err)
 	}
 
-	return handleConnection(conn, opts)
+	ctx := context.Background()
+	var cancel context.CancelFunc
+	if opts.Timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+		defer cancel()
+	}
+	return handleConnection(ctx, conn, opts)
 }
 
 func startListener(opts *options) error {
@@ -165,7 +176,13 @@ func startListener(opts *options) error {
 		}
 
 		go func(conn *net.UnixConn, opts *options) {
-			err := handleConnection(conn, opts)
+			ctx := context.Background()
+			var cancel context.CancelFunc
+			if opts.Timeout > 0 {
+				ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+				defer cancel()
+			}
+			err := handleConnection(ctx, conn, opts)
 			if err != nil {
 				fmt.Printf("ERROR: %v\n", err)
 			}
@@ -173,8 +190,12 @@ func startListener(opts *options) error {
 	}
 }
 
-func handleConnection(conn *net.UnixConn, opts *options) error {
+func handleConnection(ctx context.Context, conn *net.UnixConn, opts *options) error {
 	defer conn.Close()
+
+	if deadline, ok := ctx.Deadline(); ok {
+		conn.SetDeadline(deadline)
+	}
 
 	unixAddr, ok := conn.RemoteAddr().(*net.UnixAddr)
 	if !ok {
@@ -191,7 +212,7 @@ func handleConnection(conn *net.UnixConn, opts *options) error {
 	filename := credID + ".age"
 	path := filepath.Join(opts.Dir, filename)
 
-	data, err := ageDecrypt(opts, path)
+	data, err := ageDecrypt(ctx, opts, path)
 	if err != nil {
 		return fmt.Errorf("failed to decrypt credential file %s: %w", path, err)
 	}
@@ -204,8 +225,8 @@ func handleConnection(conn *net.UnixConn, opts *options) error {
 	return nil
 }
 
-func ageDecrypt(opts *options, path string) ([]byte, error) {
-	cmd := exec.Command(opts.AgeBin, "--decrypt", "--identity", opts.Identity, path)
+func ageDecrypt(ctx context.Context, opts *options, path string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, opts.AgeBin, "--decrypt", "--identity", opts.Identity, path)
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
