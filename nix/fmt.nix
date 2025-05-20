@@ -1,7 +1,7 @@
 # nix run --file nix/fmt.nix
 let
   system = builtins.currentSystem;
-  nixpkgs = builtins.getFlake "github:NixOS/nixpkgs/nixos-24.11";
+  nixpkgs = builtins.getFlake "github:NixOS/nixpkgs/nixos-25.05";
   pkgs = import nixpkgs { inherit system; };
   treefmt-nix = builtins.getFlake "github:numtide/treefmt-nix/main";
 in
