@@ -152,8 +152,8 @@ func startConnection(opts *options) error {
 
 	ctx := context.Background()
 	var cancel context.CancelFunc
-	if opts.Timeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+	if opts.AcceptTimeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, opts.AcceptTimeout)
 		defer cancel()
 	}
 	return handleConnection(ctx, conn, opts)
@@ -178,8 +178,8 @@ func startListener(opts *options) error {
 		go func(conn *net.UnixConn, opts *options) {
 			ctx := context.Background()
 			var cancel context.CancelFunc
-			if opts.Timeout > 0 {
-				ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+			if opts.AcceptTimeout > 0 {
+				ctx, cancel = context.WithTimeout(ctx, opts.AcceptTimeout)
 				defer cancel()
 			}
 			err := handleConnection(ctx, conn, opts)
