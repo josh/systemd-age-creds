@@ -145,7 +145,7 @@ func TestStartAccept(t *testing.T) {
 	opts.ListenFDNames = "connection"
 	opts.ListenFDsStart = int(f.Fd())
 
-	err = start(opts)
+	err = start(t.Context(), opts)
 	if err != nil {
 		t.Error(err)
 	}
@@ -213,7 +213,7 @@ func TestStartAcceptWrongIdentity(t *testing.T) {
 	opts.ListenFDNames = "connection"
 	opts.ListenFDsStart = int(f.Fd())
 
-	err = start(opts)
+	err = start(t.Context(), opts)
 	if err == nil {
 		t.Errorf("expected server to fail to decrypt cred, but was ok")
 	}

@@ -132,36 +132,30 @@ func main() {
 	fmt.Println("Starting systemd-age-creds")
 	defer fmt.Println("Stopping systemd-age-creds")
 
-	err = start(opts)
+	err = start(context.Background(), opts)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func start(opts *options) error {
+func start(ctx context.Context, opts *options) error {
 	if opts.Accept {
-		return startConnection(opts)
+		return startConnection(ctx, opts)
+	} else {
+		return startListener(ctx, opts)
 	}
-
-	return startListener(opts)
 }
 
-func startConnection(opts *options) error {
+func startConnection(ctx context.Context, opts *options) error {
 	conn, err := activationConnection(opts)
 	if err != nil {
 		return fmt.Errorf("failed to accept connection: %w", err)
 	}
 
-	ctx := context.Background()
-	var cancel context.CancelFunc
-	if opts.AcceptTimeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, opts.AcceptTimeout)
-		defer cancel()
-	}
 	return handleConnection(ctx, conn, opts)
 }
 
-func startListener(opts *options) error {
+func startListener(ctx context.Context, opts *options) error {
 	ln, err := activationListener(opts)
 	if err != nil {
 		return err
@@ -178,12 +172,6 @@ func startListener(opts *options) error {
 		}
 
 		go func(conn *net.UnixConn, opts *options) {
-			ctx := context.Background()
-			var cancel context.CancelFunc
-			if opts.AcceptTimeout > 0 {
-				ctx, cancel = context.WithTimeout(ctx, opts.AcceptTimeout)
-				defer cancel()
-			}
 			err := handleConnection(ctx, conn, opts)
 			if err != nil {
 				fmt.Printf("ERROR: %v\n", err)
@@ -194,6 +182,12 @@ func startListener(opts *options) error {
 
 func handleConnection(ctx context.Context, conn *net.UnixConn, opts *options) error {
 	defer func() { _ = conn.Close() }()
+
+	if opts.AcceptTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, opts.AcceptTimeout)
+		defer cancel()
+	}
 
 	if deadline, ok := ctx.Deadline(); ok {
 		if err := conn.SetDeadline(deadline); err != nil {
