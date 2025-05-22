@@ -31,7 +31,7 @@ var (
 type options struct {
 	AgeBin         string
 	Accept         bool
-	Timeout        time.Duration
+	AcceptTimeout  time.Duration
 	Dir            string
 	Identity       string
 	ListenFDNames  string
@@ -54,7 +54,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
 	fs.StringVar(&opts.AgeBin, "age-bin", defaultAgeBin, "path to age binary")
 	fs.BoolVar(&opts.Accept, "accept", false, "assume connection already accepted")
-	fs.DurationVar(&opts.Timeout, "timeout", 10*time.Second, "credential load timeout")
+	fs.DurationVar(&opts.AcceptTimeout, "accept-timeout", 10*time.Second, "credential load timeout")
 	fs.StringVar(&opts.Dir, "dir", AgeDir, "directory to store credentials in")
 	fs.StringVar(&opts.Identity, "identity", AgeIdentity, "age identity file")
 	fs.StringVar(&opts.ListenFDNames, "listen-fdnames", "", "intended LISTEN_FDNAMES")
@@ -64,14 +64,14 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	fs.BoolVar(&opts.ShowVersion, "version", false, "print version and exit")
 
 	envFlags := map[string]string{
-		"AGE_BIN":          "age-bin",
-		"AGE_DIR":          "dir",
-		"AGE_IDENTITY":     "identity",
-		"AGE_TIMEOUT":      "timeout",
-		"LISTEN_PID":       "listen-pid",
-		"LISTEN_FDS_START": "listen-fds-start",
-		"LISTEN_FDS":       "listen-fds",
-		"LISTEN_FDNAMES":   "listen-fdnames",
+		"AGE_BIN":            "age-bin",
+		"AGE_DIR":            "dir",
+		"AGE_IDENTITY":       "identity",
+		"AGE_ACCEPT_TIMEOUT": "accept-timeout",
+		"LISTEN_PID":         "listen-pid",
+		"LISTEN_FDS_START":   "listen-fds-start",
+		"LISTEN_FDS":         "listen-fds",
+		"LISTEN_FDNAMES":     "listen-fdnames",
 	}
 
 	for envName, flagName := range envFlags {
