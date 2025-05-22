@@ -35,6 +35,7 @@ type options struct {
 	AgeBin         string
 	Accept         bool
 	AcceptTimeout  time.Duration
+	IdleTimeout    time.Duration
 	Dir            string
 	Identity       string
 	ListenFDNames  string
@@ -58,6 +59,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	fs.StringVar(&opts.AgeBin, "age-bin", defaultAgeBin, "path to age binary")
 	fs.BoolVar(&opts.Accept, "accept", false, "assume connection already accepted")
 	fs.DurationVar(&opts.AcceptTimeout, "accept-timeout", 10*time.Second, "credential load timeout")
+	fs.DurationVar(&opts.IdleTimeout, "idle-timeout", 0*time.Second, "sets the time before exiting when there are no connections")
 	fs.StringVar(&opts.Dir, "dir", AgeDir, "directory to store credentials in")
 	fs.StringVar(&opts.Identity, "identity", AgeIdentity, "age identity file")
 	fs.StringVar(&opts.ListenFDNames, "listen-fdnames", "", "intended LISTEN_FDNAMES")
@@ -71,6 +73,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 		"AGE_DIR":            "dir",
 		"AGE_IDENTITY":       "identity",
 		"AGE_ACCEPT_TIMEOUT": "accept-timeout",
+		"AGE_IDLE_TIMEOUT":   "idle-timeout",
 		"LISTEN_PID":         "listen-pid",
 		"LISTEN_FDS_START":   "listen-fds-start",
 		"LISTEN_FDS":         "listen-fds",
@@ -168,6 +171,9 @@ func startListener(ctx context.Context, opts *options) error {
 	}
 	defer func() { _ = ln.Close() }()
 
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+
 	var isShuttingDown atomic.Bool
 	go func() {
 		<-ctx.Done()
@@ -175,9 +181,17 @@ func startListener(ctx context.Context, opts *options) error {
 		_ = ln.Close()
 	}()
 
+	var idleTimer *time.Timer
+	if opts.IdleTimeout > 0 {
+		idleTimer = time.AfterFunc(opts.IdleTimeout, func() {
+			cancel(fmt.Errorf("idle timeout after %s", opts.IdleTimeout))
+		})
+	}
+
 	fmt.Printf("Listening on %s\n", ln.Addr())
 
 	var wg sync.WaitGroup
+
 	for {
 		conn, err := ln.AcceptUnix()
 		if err != nil {
@@ -187,6 +201,11 @@ func startListener(ctx context.Context, opts *options) error {
 			}
 			fmt.Printf("Failed to accept connection: %v\n", err)
 			return err
+		}
+
+		if idleTimer != nil {
+			idleTimer.Stop()
+			idleTimer.Reset(opts.IdleTimeout)
 		}
 
 		wg.Add(1)

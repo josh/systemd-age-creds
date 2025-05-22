@@ -219,6 +219,58 @@ func TestStartAcceptWrongIdentity(t *testing.T) {
 	}
 }
 
+func TestIdleTimeoutGracefulExit(t *testing.T) {
+	socketPath := t.TempDir() + "/idle.sock"
+	saddr := &net.UnixAddr{Name: socketPath, Net: "unix"}
+
+	ln, err := net.ListenUnix("unix", saddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = ln.Close()
+	}()
+
+	f, err := ln.File()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = f.Close() }()
+
+	opts, err := testOptions()
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts.Accept = false
+	opts.ListenFDNames = "idle.sock"
+	opts.ListenFDsStart = int(f.Fd())
+	opts.IdleTimeout = 5 * time.Second
+
+	ctx := t.Context()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- start(ctx, opts)
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+
+	conn, err := net.DialUnix("unix", nil, saddr)
+	if err != nil {
+		t.Fatalf("failed to connect: %v", err)
+	}
+	_ = conn.Close()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Errorf("server exited with error: %v", err)
+		}
+	case <-time.After(7 * time.Second):
+		t.Error("server did not exit after idle timeout")
+	}
+}
+
 func testOptions() (*options, error) {
 	ageBin, err := exec.LookPath("age")
 	if err != nil {
