@@ -42,7 +42,11 @@ func TestActivationListener(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	defer ln1.Close()
+	defer func() {
+		if err := ln1.Close(); err != nil {
+			t.Errorf("failed to close listener: %v", err)
+		}
+	}()
 
 	f1, err := ln1.(*net.UnixListener).File()
 	if err != nil {
@@ -64,7 +68,11 @@ func TestActivationListener(t *testing.T) {
 		t.Error(err)
 	}
 
-	defer ln2.Close()
+	defer func() {
+		if err := ln2.Close(); err != nil {
+			t.Errorf("failed to close listener: %v", err)
+		}
+	}()
 
 	f2, err := ln2.File()
 	if err != nil {
@@ -85,7 +93,11 @@ func TestStartAccept(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	defer ln.Close()
+	defer func() {
+		if err := ln.Close(); err != nil {
+			t.Errorf("failed to close listener: %v", err)
+		}
+	}()
 
 	go func() {
 		_, err := readCred("foo", sname)
@@ -106,14 +118,22 @@ func TestStartAccept(t *testing.T) {
 		return
 	}
 
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	f, err := conn.File()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			t.Errorf("failed to close file: %v", err)
+		}
+	}()
 
 	opts, err := testOptions()
 	if err != nil {
@@ -140,7 +160,11 @@ func TestStartAcceptWrongIdentity(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	defer ln.Close()
+	defer func() {
+		if err := ln.Close(); err != nil {
+			t.Errorf("failed to close listener: %v", err)
+		}
+	}()
 
 	go func() {
 		_, err := readCred("foo", sname)
@@ -161,14 +185,22 @@ func TestStartAcceptWrongIdentity(t *testing.T) {
 		return
 	}
 
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("failed to close connection: %v", err)
+		}
+	}()
 
 	f, err := conn.File()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			t.Errorf("failed to close file: %v", err)
+		}
+	}()
 
 	opts, err := testOptions()
 	if err != nil {
@@ -222,7 +254,11 @@ func readCred(credID string, socketPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			fmt.Printf("Warning: failed to close connection: %v\n", err)
+		}
+	}()
 
 	buf, err := io.ReadAll(conn)
 	if err != nil {

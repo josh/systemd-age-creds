@@ -81,7 +81,9 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 				return &opts, fmt.Errorf("invalid value \"%s\" for flag -%s: %w", val, flagName, err)
 			}
 
-			os.Unsetenv(envName)
+			if err := os.Unsetenv(envName); err != nil {
+				return &opts, fmt.Errorf("failed to unset environment variable %s: %w", envName, err)
+			}
 		}
 	}
 
@@ -164,7 +166,7 @@ func startListener(opts *options) error {
 	if err != nil {
 		return err
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	fmt.Printf("Listening on %s\n", ln.Addr())
 
@@ -191,10 +193,12 @@ func startListener(opts *options) error {
 }
 
 func handleConnection(ctx context.Context, conn *net.UnixConn, opts *options) error {
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	if deadline, ok := ctx.Deadline(); ok {
-		conn.SetDeadline(deadline)
+		if err := conn.SetDeadline(deadline); err != nil {
+			return fmt.Errorf("failed to set connection deadline: %w", err)
+		}
 	}
 
 	unixAddr, ok := conn.RemoteAddr().(*net.UnixAddr)
@@ -282,7 +286,9 @@ func activationListener(opts *options) (*net.UnixListener, error) {
 		return nil, err
 	}
 
-	f.Close()
+	if err := f.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close file: %w", err)
+	}
 
 	unixListener, ok := l.(*net.UnixListener)
 	if !ok {
