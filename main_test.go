@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -268,6 +269,57 @@ func TestIdleTimeoutGracefulExit(t *testing.T) {
 		}
 	case <-time.After(7 * time.Second):
 		t.Error("server did not exit after idle timeout")
+	}
+}
+
+func TestReadPeercred(t *testing.T) {
+	l, err := net.Listen("unix", "@peercred-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := l.Close(); err != nil {
+			t.Errorf("listener close error: %v", err)
+		}
+	}()
+
+	ctx := t.Context()
+
+	go func(ctx context.Context) {
+		conn, err := l.Accept()
+		if err != nil {
+			return
+		}
+		<-ctx.Done()
+		if err := conn.Close(); err != nil {
+			t.Errorf("conn close error: %v", err)
+		}
+	}(ctx)
+
+	conn, err := net.Dial("unix", "@peercred-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("conn close error: %v", err)
+		}
+	}()
+
+	cred, err := readPeercred(conn.(*net.UnixConn))
+	if err != nil {
+		t.Fatalf("want nil err, got %v", err)
+	}
+
+	pid, uid, gid := os.Getpid(), os.Getuid(), os.Getgid()
+	if cred.Pid != int32(pid) {
+		t.Errorf("pid: want %d, got %d", pid, cred.Pid)
+	}
+	if cred.Uid != uint32(uid) {
+		t.Errorf("uid: want %d, got %d", uid, cred.Uid)
+	}
+	if cred.Gid != uint32(gid) {
+		t.Errorf("gid: want %d, got %d", gid, cred.Gid)
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -42,6 +43,7 @@ type options struct {
 	ListenFDs      int
 	ListenFDsStart int
 	ListenPID      int
+	AllowedPIDs    []int
 	ShowVersion    bool
 }
 
@@ -55,6 +57,8 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 		}
 	}
 
+	var allowedPIDs string
+
 	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
 	fs.StringVar(&opts.AgeBin, "age-bin", defaultAgeBin, "path to age binary")
 	fs.BoolVar(&opts.Accept, "accept", false, "assume connection already accepted")
@@ -66,6 +70,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	fs.IntVar(&opts.ListenFDs, "listen-fds", 0, "intended number of LISTEN_FDS")
 	fs.IntVar(&opts.ListenFDsStart, "listen-fds-start", ListenFDsStart, "intended start of LISTEN_FDS")
 	fs.IntVar(&opts.ListenPID, "listen-pid", 0, "intended PID of listener")
+	fs.StringVar(&allowedPIDs, "allowed-pids", "", "comma-separated list of PIDs that can connect to socket")
 	fs.BoolVar(&opts.ShowVersion, "version", false, "print version and exit")
 
 	envFlags := map[string]string{
@@ -78,6 +83,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 		"LISTEN_FDS_START":   "listen-fds-start",
 		"LISTEN_FDS":         "listen-fds",
 		"LISTEN_FDNAMES":     "listen-fdnames",
+		"ALLOWED_PIDS":       "allowed-pids",
 	}
 
 	for envName, flagName := range envFlags {
@@ -116,6 +122,21 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 
 	if opts.ListenFDNames == "connection" {
 		opts.Accept = true
+	}
+
+	if allowedPIDs != "" {
+		pidStrs := strings.Split(allowedPIDs, ",")
+		for _, s := range pidStrs {
+			s = strings.TrimSpace(s)
+			if s == "" {
+				continue
+			}
+			pid, err := strconv.Atoi(s)
+			if err != nil {
+				return &opts, fmt.Errorf("invalid pid in --allowed-pids: %q", s)
+			}
+			opts.AllowedPIDs = append(opts.AllowedPIDs, pid)
+		}
 	}
 
 	return &opts, nil
@@ -247,7 +268,32 @@ func handleConnection(ctx context.Context, conn *net.UnixConn, opts *options) er
 		return err
 	}
 
-	fmt.Printf("%s requesting '%s' credential\n", unitName, credID)
+	peercred, peercredErr := readPeercred(conn)
+	if peercredErr != nil {
+		fmt.Printf("warn: failed to get peer credentials: %v\n", peercredErr)
+	}
+
+	if peercred != nil {
+		fmt.Printf("%s (pid %d) requesting '%s' credential\n", unitName, peercred.Pid, credID)
+	} else {
+		fmt.Printf("%s requesting '%s' credential\n", unitName, credID)
+	}
+
+	if len(opts.AllowedPIDs) > 0 {
+		if peercredErr != nil {
+			return fmt.Errorf("failed to get peer credentials: %w", peercredErr)
+		}
+		allowed := false
+		for _, pid := range opts.AllowedPIDs {
+			if int(peercred.Pid) == pid {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return fmt.Errorf("connection from pid %d not permitted", peercred.Pid)
+		}
+	}
 
 	filename := credID + ".age"
 	path := filepath.Join(opts.Dir, filename)
@@ -285,6 +331,27 @@ func parsePeerName(s string) (string, string, error) {
 	}
 
 	return matches[1], matches[2], nil
+}
+
+func readPeercred(conn *net.UnixConn) (*syscall.Ucred, error) {
+	raw, err := conn.SyscallConn()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get raw socket connection: %w", err)
+	}
+	var cred *syscall.Ucred
+	controlErr := raw.Control(func(fd uintptr) {
+		cred, err = syscall.GetsockoptUcred(int(fd),
+			syscall.SOL_SOCKET,
+			syscall.SO_PEERCRED,
+		)
+	})
+	if controlErr != nil {
+		return nil, fmt.Errorf("unable to get peer credentials: %w", controlErr)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("unable to get peer credentials: %w", err)
+	}
+	return cred, nil
 }
 
 func activationFile(opts *options) (*os.File, error) {
