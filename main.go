@@ -274,7 +274,7 @@ func handleConnection(ctx context.Context, conn *net.UnixConn, opts *options) er
 	}
 
 	if peercred != nil {
-		fmt.Printf("%s (pid %d) requesting '%s' credential\n", unitName, peercred.Pid, credID)
+		fmt.Printf("%s (pid %d, uid %d, gid %d) requesting '%s' credential\n", unitName, peercred.Pid, peercred.Uid, peercred.Gid, credID)
 	} else {
 		fmt.Printf("%s requesting '%s' credential\n", unitName, credID)
 	}
