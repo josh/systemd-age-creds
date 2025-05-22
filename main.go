@@ -12,9 +12,12 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -129,10 +132,13 @@ func main() {
 		os.Exit(0)
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	fmt.Println("Starting systemd-age-creds")
 	defer fmt.Println("Stopping systemd-age-creds")
 
-	err = start(context.Background(), opts)
+	err = start(ctx, opts)
 	if err != nil {
 		panic(err)
 	}
@@ -162,22 +168,39 @@ func startListener(ctx context.Context, opts *options) error {
 	}
 	defer func() { _ = ln.Close() }()
 
+	var isShuttingDown atomic.Bool
+	go func() {
+		<-ctx.Done()
+		isShuttingDown.Store(true)
+		_ = ln.Close()
+	}()
+
 	fmt.Printf("Listening on %s\n", ln.Addr())
 
+	var wg sync.WaitGroup
 	for {
 		conn, err := ln.AcceptUnix()
 		if err != nil {
+			if isShuttingDown.Load() {
+				fmt.Printf("Shutting down listener\n")
+				break
+			}
 			fmt.Printf("Failed to accept connection: %v\n", err)
-			continue
+			return err
 		}
 
+		wg.Add(1)
 		go func(conn *net.UnixConn, opts *options) {
+			defer wg.Done()
 			err := handleConnection(ctx, conn, opts)
 			if err != nil {
 				fmt.Printf("ERROR: %v\n", err)
 			}
 		}(conn, opts)
 	}
+
+	wg.Wait()
+	return nil
 }
 
 func handleConnection(ctx context.Context, conn *net.UnixConn, opts *options) error {
