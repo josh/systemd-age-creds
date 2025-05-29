@@ -32,8 +32,8 @@ let
   '';
 
   copyCredsScript = writeShellScript "export-creds.bash" ''
-    ${coreutils}/bin/mkdir /tmp/age-creds-test
-    ${coreutils}/bin/cp $CREDENTIALS_DIRECTORY/* /tmp/age-creds-test/
+    ${coreutils}/bin/mkdir /tmp/systemd-age-creds-test
+    ${coreutils}/bin/cp $CREDENTIALS_DIRECTORY/* /tmp/systemd-age-creds-test/
   '';
 
 in
@@ -57,7 +57,7 @@ testers.runNixOSTest {
         inherit socketAccept;
       };
 
-      systemd.services.age-creds-test = {
+      systemd.services.systemd-age-creds-test = {
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
           Type = "oneshot";
@@ -75,22 +75,22 @@ testers.runNixOSTest {
     creds = json.loads('${builtins.toJSON creds}')
     accept = ${if socketAccept then "True" else "False"}
 
-    machine.wait_for_unit("age-creds.socket");
-    machine.wait_for_unit("age-creds-test.service");
+    machine.wait_for_unit("systemd-age-creds.socket");
+    machine.wait_for_unit("systemd-age-creds-test.service");
 
     if accept:
-      n_connections = int(machine.get_unit_property("age-creds.socket", "NConnections"))
-      n_accepted = int(machine.get_unit_property("age-creds.socket", "NAccepted"))
+      n_connections = int(machine.get_unit_property("systemd-age-creds.socket", "NConnections"))
+      n_accepted = int(machine.get_unit_property("systemd-age-creds.socket", "NAccepted"))
       assert n_connections == 0, f"Expected 0 active connection, got {n_connections}"
       assert n_accepted == len(creds), f"Expected {len(creds)} accepted connections, got {n_accepted}"
 
-    files = machine.succeed("ls /tmp/age-creds-test").splitlines()
-    assert len(files) > 0, "Expected at least one file in /tmp/age-creds-test"
+    files = machine.succeed("ls /tmp/systemd-age-creds-test").splitlines()
+    assert len(files) > 0, "Expected at least one file in /tmp/systemd-age-creds-test"
     assert len(files) == len(creds), f"Expected {len(creds)} files, got {len(files)}: {files}"
 
     for name, value in creds.items():
       assert name in files, f"Expected file {name}"
-      contents = machine.succeed(f"cat /tmp/age-creds-test/{name}").strip()
+      contents = machine.succeed(f"cat /tmp/systemd-age-creds-test/{name}").strip()
       assert contents == value, f"Expected {name} to equal '{value}', got '{contents}'"
   '';
 }

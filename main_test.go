@@ -15,13 +15,13 @@ import (
 )
 
 func TestParsePeerNameOk(t *testing.T) {
-	unit, cred, err := parsePeerName("@f4b4692a71d9438e/unit/age-creds-test.service/foo")
+	unit, cred, err := parsePeerName("@f4b4692a71d9438e/unit/systemd-age-creds-test.service/foo")
 	if err != nil {
 		t.Error(err)
 	}
 
-	if unit != "age-creds-test.service" {
-		t.Errorf("unit = %s; want age-creds-test.service", unit)
+	if unit != "systemd-age-creds-test.service" {
+		t.Errorf("unit = %s; want systemd-age-creds-test.service", unit)
 	}
 
 	if cred != "foo" {

@@ -36,7 +36,7 @@ in
 
     socket = lib.mkOption {
       type = lib.types.path;
-      default = "/run/age-creds.sock";
+      default = "/run/systemd-age-creds.sock";
       description = "The path to the age credentials unix socket.";
     };
 
@@ -48,11 +48,11 @@ in
 
   config =
     let
-      serviceName = if cfg.socketAccept then "age-creds@" else "age-creds";
+      serviceName = if cfg.socketAccept then "systemd-age-creds@" else "systemd-age-creds";
     in
     lib.mkIf cfg.enable {
-      systemd.sockets.age-creds = {
-        description = "age credentials socket";
+      systemd.sockets.systemd-age-creds = {
+        description = "systemd age credentials socket";
         wantedBy = [ "sockets.target" ];
 
         socketConfig = {
@@ -63,7 +63,7 @@ in
       };
 
       systemd.services.${serviceName} = {
-        description = "age credentials service";
+        description = "systemd age credentials service";
 
         unitConfig = {
           AssertFileNotEmpty = cfg.identity;
