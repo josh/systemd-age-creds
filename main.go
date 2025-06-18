@@ -15,7 +15,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -43,7 +42,6 @@ type options struct {
 	ListenFDs      int
 	ListenFDsStart int
 	ListenPID      int
-	AllowedPIDs    []int
 	ShowVersion    bool
 }
 
@@ -122,21 +120,6 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 
 	if opts.ListenFDNames == "connection" {
 		opts.Accept = true
-	}
-
-	if allowedPIDs != "" {
-		pidStrs := strings.Split(allowedPIDs, ",")
-		for _, s := range pidStrs {
-			s = strings.TrimSpace(s)
-			if s == "" {
-				continue
-			}
-			pid, err := strconv.Atoi(s)
-			if err != nil {
-				return &opts, fmt.Errorf("invalid pid in --allowed-pids: %q", s)
-			}
-			opts.AllowedPIDs = append(opts.AllowedPIDs, pid)
-		}
 	}
 
 	return &opts, nil
@@ -277,22 +260,6 @@ func handleConnection(ctx context.Context, conn *net.UnixConn, opts *options) er
 		fmt.Printf("%s (pid %d, uid %d, gid %d) requesting '%s' credential\n", unitName, peercred.Pid, peercred.Uid, peercred.Gid, credID)
 	} else {
 		fmt.Printf("%s requesting '%s' credential\n", unitName, credID)
-	}
-
-	if len(opts.AllowedPIDs) > 0 {
-		if peercredErr != nil {
-			return fmt.Errorf("failed to get peer credentials: %w", peercredErr)
-		}
-		allowed := false
-		for _, pid := range opts.AllowedPIDs {
-			if int(peercred.Pid) == pid {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			return fmt.Errorf("connection from pid %d not permitted", peercred.Pid)
-		}
 	}
 
 	filename := credID + ".age"
