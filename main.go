@@ -28,7 +28,7 @@ var (
 	AgeDir         = ""
 	AgeIdentity    = ""
 	ListenFDsStart = 3
-	Version        = "0.2.1"
+	Version        = "1.0.0"
 )
 
 type options struct {
