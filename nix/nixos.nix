@@ -34,6 +34,20 @@ in
       description = "The directory to load age credentials from.";
     };
 
+    acceptTimeout = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "10s";
+      description = "Connection handling timeout.";
+    };
+
+    idleTimeout = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "5m";
+      description = "The time before exiting when there are no connections.";
+    };
+
     socket = lib.mkOption {
       type = lib.types.path;
       default = "/run/systemd-age-creds.sock";
@@ -72,10 +86,14 @@ in
 
         serviceConfig = {
           Type = "simple";
-          Environment = [
-            "AGE_DIR=${cfg.directory}"
-            "AGE_IDENTITY=${cfg.identity}"
-          ] ++ (lib.lists.optional (cfg.ageBin != null) "AGE_BIN=${cfg.ageBin}");
+          Environment =
+            [
+              "AGE_DIR=${cfg.directory}"
+              "AGE_IDENTITY=${cfg.identity}"
+            ]
+            ++ (lib.lists.optional (cfg.ageBin != null) "AGE_BIN=${cfg.ageBin}")
+            ++ (lib.lists.optional (cfg.acceptTimeout != null) "AGE_ACCEPT_TIMEOUT=${cfg.acceptTimeout}")
+            ++ (lib.lists.optional (cfg.idleTimeout != null) "AGE_IDLE_TIMEOUT=${cfg.idleTimeout}");
           ExecStart = "${lib.getExe cfg.package}";
         };
       };
