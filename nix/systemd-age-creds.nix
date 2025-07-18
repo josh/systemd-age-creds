@@ -4,7 +4,7 @@
   age,
 }:
 let
-  version = "0.2.0";
+  version = "1.0.1";
 in
 buildGoModule {
   pname = "systemd-age-creds";
