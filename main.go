@@ -55,8 +55,6 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 		}
 	}
 
-	var allowedPIDs string
-
 	fs := flag.NewFlagSet(progname, flag.ContinueOnError)
 	fs.StringVar(&opts.AgeBin, "age-bin", defaultAgeBin, "path to age binary")
 	fs.BoolVar(&opts.Accept, "accept", false, "assume connection already accepted")
@@ -68,7 +66,6 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	fs.IntVar(&opts.ListenFDs, "listen-fds", 0, "intended number of LISTEN_FDS")
 	fs.IntVar(&opts.ListenFDsStart, "listen-fds-start", ListenFDsStart, "intended start of LISTEN_FDS")
 	fs.IntVar(&opts.ListenPID, "listen-pid", 0, "intended PID of listener")
-	fs.StringVar(&allowedPIDs, "allowed-pids", "", "comma-separated list of PIDs that can connect to socket")
 	fs.BoolVar(&opts.ShowVersion, "version", false, "print version and exit")
 
 	envFlags := map[string]string{
@@ -81,7 +78,6 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 		"LISTEN_FDS_START":   "listen-fds-start",
 		"LISTEN_FDS":         "listen-fds",
 		"LISTEN_FDNAMES":     "listen-fdnames",
-		"ALLOWED_PIDS":       "allowed-pids",
 	}
 
 	for envName, flagName := range envFlags {
