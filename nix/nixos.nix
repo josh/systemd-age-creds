@@ -18,9 +18,15 @@ in
       description = "The package to use for systemd-age-creds.";
     };
 
+    agePackage = lib.mkOption {
+      type = lib.types.nullOr lib.types.package;
+      default = null;
+      description = "The package to use for age.";
+    };
+
     ageBin = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
-      default = null;
+      default = if cfg.agePackage != null then (lib.getExe cfg.agePackage) else null;
       description = "The path to the age binary.";
     };
 
