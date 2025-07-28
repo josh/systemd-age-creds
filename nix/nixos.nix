@@ -97,8 +97,8 @@ in
             "AGE_IDENTITY=${cfg.identity}"
           ]
           ++ (lib.lists.optional (cfg.ageBin != null) "AGE_BIN=${cfg.ageBin}")
-          ++ (lib.lists.optional (cfg.acceptTimeout != null) "AGE_ACCEPT_TIMEOUT=${cfg.acceptTimeout}")
-          ++ (lib.lists.optional (cfg.idleTimeout != null) "AGE_IDLE_TIMEOUT=${cfg.idleTimeout}");
+          ++ (lib.lists.optional (cfg.acceptTimeout != null) "ACCEPT_TIMEOUT=${cfg.acceptTimeout}")
+          ++ (lib.lists.optional (cfg.idleTimeout != null) "IDLE_TIMEOUT=${cfg.idleTimeout}");
           ExecStart = "${lib.getExe cfg.package}";
         };
       };

@@ -69,15 +69,15 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	fs.BoolVar(&opts.ShowVersion, "version", false, "print version and exit")
 
 	envFlags := map[string]string{
-		"AGE_BIN":            "age-bin",
-		"AGE_DIR":            "dir",
-		"AGE_IDENTITY":       "identity",
-		"AGE_ACCEPT_TIMEOUT": "accept-timeout",
-		"AGE_IDLE_TIMEOUT":   "idle-timeout",
-		"LISTEN_PID":         "listen-pid",
-		"LISTEN_FDS_START":   "listen-fds-start",
-		"LISTEN_FDS":         "listen-fds",
-		"LISTEN_FDNAMES":     "listen-fdnames",
+		"AGE_BIN":          "age-bin",
+		"AGE_DIR":          "dir",
+		"AGE_IDENTITY":     "identity",
+		"ACCEPT_TIMEOUT":   "accept-timeout",
+		"IDLE_TIMEOUT":     "idle-timeout",
+		"LISTEN_PID":       "listen-pid",
+		"LISTEN_FDS_START": "listen-fds-start",
+		"LISTEN_FDS":       "listen-fds",
+		"LISTEN_FDNAMES":   "listen-fdnames",
 	}
 
 	for envName, flagName := range envFlags {
