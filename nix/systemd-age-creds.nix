@@ -10,6 +10,8 @@ buildGoModule (finalAttrs: {
     ".*\.go$"
     "^go.mod$"
     "^go.sum$"
+    "^systemd$"
+    "^systemd\/.*$"
     "^test$"
     "^test\/.*$"
   ];
@@ -25,6 +27,11 @@ buildGoModule (finalAttrs: {
   ];
 
   nativeBuildInputs = [ age ];
+
+  postInstall = ''
+    substituteInPlace ./systemd/*.service --replace-fail /usr/sbin/systemd-age-creds $out/bin/systemd-age-creds
+    install -D --mode=0444 --target-directory $out/lib/systemd/system ./systemd/*
+  '';
 
   meta = {
     description = "Load age encrypted credentials in systemd units";

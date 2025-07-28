@@ -1,0 +1,9 @@
+[Unit]
+Description=systemd age credentials socket
+
+[Socket]
+ListenStream=%t/systemd-age-creds.sock
+SocketMode=0600
+
+[Install]
+WantedBy=sockets.target
