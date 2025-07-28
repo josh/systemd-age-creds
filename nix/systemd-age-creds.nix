@@ -3,12 +3,9 @@
   buildGoModule,
   age,
 }:
-let
-  version = "1.0.1";
-in
-buildGoModule {
+buildGoModule (finalAttrs: {
   pname = "systemd-age-creds";
-  inherit version;
+  version = "1.0.1";
   src = lib.sources.sourceByRegex ./.. [
     ".*\.go$"
     "^go.mod$"
@@ -23,7 +20,7 @@ buildGoModule {
   ldflags = [
     "-s"
     "-w"
-    "-X main.Version=${version}"
+    "-X main.Version=${finalAttrs.version}"
     "-X main.AgeBin=${lib.getExe age}"
   ];
 
@@ -36,4 +33,4 @@ buildGoModule {
     license = lib.licenses.mit;
     platforms = lib.platforms.linux;
   };
-}
+})
