@@ -16,11 +16,12 @@ let
 
   credstoreDir =
     let
-      commands =
-        [ "mkdir $out" ]
-        ++ (lib.attrsets.mapAttrsToList (name: value: ''
-          echo "${value}" | age -R ${keys}/recipients >$out/${name}.age
-        '') creds);
+      commands = [
+        "mkdir $out"
+      ]
+      ++ (lib.attrsets.mapAttrsToList (name: value: ''
+        echo "${value}" | age -R ${keys}/recipients >$out/${name}.age
+      '') creds);
       script = lib.concatStringsSep "\n" commands;
     in
     runCommandLocal "credstore" { buildInputs = [ age ]; } script;

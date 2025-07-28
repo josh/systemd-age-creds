@@ -44,24 +44,23 @@
           inherit (self.packages.aarch64-linux) systemd-age-creds;
         };
 
-        x86_64-linux =
+        x86_64-linux = {
+          inherit (self.packages.x86_64-linux) systemd-age-creds;
+        }
+        // (mapListToAttrs (
+          test:
+          let
+            testName = "nixos-system-unit-${test.creds.name}-creds-accept-${test.accept.name}";
+          in
           {
-            inherit (self.packages.x86_64-linux) systemd-age-creds;
+            name = testName;
+            value = callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix {
+              inherit self testName;
+              creds = test.creds.value;
+              socketAccept = test.accept.value;
+            };
           }
-          // (mapListToAttrs (
-            test:
-            let
-              testName = "nixos-system-unit-${test.creds.name}-creds-accept-${test.accept.name}";
-            in
-            {
-              name = testName;
-              value = callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix {
-                inherit self testName;
-                creds = test.creds.value;
-                socketAccept = test.accept.value;
-              };
-            }
-          ) checkMatrix);
+        ) checkMatrix);
       };
     };
 }
