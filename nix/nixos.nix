@@ -55,8 +55,9 @@ in
     };
 
     socket = lib.mkOption {
-      type = lib.types.path;
-      default = "/run/systemd-age-creds.sock";
+      type = lib.types.str;
+      default = "%t/systemd-age-creds.sock";
+      readOnly = true;
       description = "The path to the age credentials unix socket.";
     };
 
@@ -71,36 +72,26 @@ in
       serviceName = if cfg.socketAccept then "systemd-age-creds@" else "systemd-age-creds";
     in
     lib.mkIf cfg.enable {
-      systemd.sockets.systemd-age-creds = {
-        description = "systemd age credentials socket";
-        wantedBy = [ "sockets.target" ];
+      systemd.packages = [ pkgs.systemd-age-creds ];
 
-        socketConfig = {
-          ListenStream = cfg.socket;
-          SocketMode = "0600";
-          Accept = if cfg.socketAccept then "yes" else "no";
-        };
+      systemd.sockets.systemd-age-creds = {
+        # https://github.com/NixOS/nixpkgs/issues/81138
+        wantedBy = [ "sockets.target" ];
+        socketConfig.Accept = if cfg.socketAccept then "yes" else null;
       };
 
       systemd.services.${serviceName} = {
-        description = "systemd age credentials service";
-
         unitConfig = {
           AssertFileNotEmpty = cfg.identity;
           AssertDirectoryNotEmpty = cfg.directory;
         };
 
-        serviceConfig = {
-          Type = "simple";
-          Environment = [
-            "AGE_DIR=${cfg.directory}"
-            "AGE_IDENTITY=${cfg.identity}"
-          ]
+        serviceConfig.Environment =
+          (lib.lists.optional (cfg.directory != null) "AGE_DIR=${cfg.directory}")
+          ++ (lib.lists.optional (cfg.identity != null) "AGE_IDENTITY=${cfg.identity}")
           ++ (lib.lists.optional (cfg.ageBin != null) "AGE_BIN=${cfg.ageBin}")
           ++ (lib.lists.optional (cfg.acceptTimeout != null) "ACCEPT_TIMEOUT=${cfg.acceptTimeout}")
           ++ (lib.lists.optional (cfg.idleTimeout != null) "IDLE_TIMEOUT=${cfg.idleTimeout}");
-          ExecStart = "${lib.getExe cfg.package}";
-        };
       };
     };
 }
