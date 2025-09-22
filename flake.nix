@@ -40,27 +40,39 @@
       };
 
       checks = {
-        aarch64-linux = {
-          inherit (self.packages.aarch64-linux) systemd-age-creds;
-        };
-
-        x86_64-linux = {
-          inherit (self.packages.x86_64-linux) systemd-age-creds;
-        }
-        // (mapListToAttrs (
-          test:
+        aarch64-linux =
           let
-            testName = "nixos-system-unit-${test.creds.name}-creds-accept-${test.accept.name}";
+            pkgs = nixpkgs.legacyPackages.aarch64-linux;
+            buildPkg = pkg: pkgs.runCommand "${pkg.name}-build" { env.PKG = pkg; } "touch $out";
           in
           {
-            name = testName;
-            value = callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix {
-              inherit self testName;
-              creds = test.creds.value;
-              socketAccept = test.accept.value;
-            };
+            systemd-age-creds = buildPkg self.packages.aarch64-linux.systemd-age-creds;
+          };
+
+        x86_64-linux =
+          let
+            pkgs = nixpkgs.legacyPackages.x86_64-linux;
+            buildPkg = pkg: pkgs.runCommand "${pkg.name}-build" { env.PKG = pkg; } "touch $out";
+          in
+          {
+            systemd-age-creds = buildPkg self.packages.x86_64-linux.systemd-age-creds;
           }
-        ) checkMatrix);
+          // (mapListToAttrs (
+            test:
+            let
+              testName = "nixos-system-unit-${test.creds.name}-creds-accept-${test.accept.name}";
+            in
+            {
+              name = testName;
+              value = buildPkg (
+                callPackage.x86_64-linux ./nix/tests/nixos-system-unit.nix {
+                  inherit self testName;
+                  creds = test.creds.value;
+                  socketAccept = test.accept.value;
+                }
+              );
+            }
+          ) checkMatrix);
       };
     };
 }
