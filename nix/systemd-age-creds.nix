@@ -5,7 +5,7 @@
 }:
 buildGoModule (finalAttrs: {
   pname = "systemd-age-creds";
-  version = "1.1.0";
+  version = "1.2.0";
   src = lib.sources.sourceByRegex ./.. [
     ".*\.go$"
     "^go.mod$"
