@@ -38,12 +38,15 @@ type options struct {
 	IdleTimeout    time.Duration
 	Dir            string
 	Identity       string
+	CredCache      bool
 	ListenFDNames  string
 	ListenFDs      int
 	ListenFDsStart int
 	ListenPID      int
 	ShowVersion    bool
 }
+
+var credentialCache sync.Map
 
 func parseFlags(progname string, args []string, out io.Writer) (*options, error) {
 	var opts options
@@ -61,6 +64,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 	fs.DurationVar(&opts.AcceptTimeout, "accept-timeout", 10*time.Second, "credential load timeout")
 	fs.DurationVar(&opts.IdleTimeout, "idle-timeout", 0*time.Second, "sets the time before exiting when there are no connections")
 	fs.StringVar(&opts.Dir, "dir", AgeDir, "directory to store credentials in")
+	fs.BoolVar(&opts.CredCache, "cred-cache", false, "enable credential caching")
 	fs.StringVar(&opts.Identity, "identity", AgeIdentity, "age identity file")
 	fs.StringVar(&opts.ListenFDNames, "listen-fdnames", "", "intended LISTEN_FDNAMES")
 	fs.IntVar(&opts.ListenFDs, "listen-fds", 0, "intended number of LISTEN_FDS")
@@ -78,6 +82,7 @@ func parseFlags(progname string, args []string, out io.Writer) (*options, error)
 		"LISTEN_FDS_START": "listen-fds-start",
 		"LISTEN_FDS":       "listen-fds",
 		"LISTEN_FDNAMES":   "listen-fdnames",
+		"AGE_CRED_CACHE":   "cred-cache",
 	}
 
 	for envName, flagName := range envFlags {
@@ -261,9 +266,27 @@ func handleConnection(ctx context.Context, conn *net.UnixConn, opts *options) er
 	filename := credID + ".age"
 	path := filepath.Join(opts.Dir, filename)
 
-	data, err := ageDecrypt(ctx, opts, path)
-	if err != nil {
-		return fmt.Errorf("failed to decrypt credential file %s: %w", path, err)
+	var data []byte
+	if opts.CredCache {
+		if cached, ok := credentialCache.Load(path); ok {
+			if cachedBytes, ok := cached.([]byte); ok {
+				data = cachedBytes
+			}
+		}
+	}
+
+	if data == nil {
+		var err error
+		data, err = ageDecrypt(ctx, opts, path)
+		if err != nil {
+			return fmt.Errorf("failed to decrypt credential file %s: %w", path, err)
+		}
+		if opts.CredCache {
+			stored := make([]byte, len(data))
+			copy(stored, data)
+			credentialCache.Store(path, stored)
+			data = stored
+		}
 	}
 
 	_, err = conn.Write(data)
