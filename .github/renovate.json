@@ -9,9 +9,9 @@
   },
   "packageRules": [
     {
-      "enabled": false
       "matchFiles": [".github/workflows/go.yml"],
       "matchPackageNames": ["go"],
+      "enabled": false
     }
   ],
   "automerge": true,
