@@ -7,6 +7,13 @@
     "enabled": true,
     "schedule": ["before 4am on the first day of the month"]
   },
+  "packageRules": [
+    {
+      "enabled": false
+      "matchFiles": [".github/workflows/go.yml"],
+      "matchPackageNames": ["go"],
+    }
+  ],
   "automerge": true,
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
