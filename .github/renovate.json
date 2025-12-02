@@ -10,7 +10,7 @@
   "packageRules": [
     {
       "matchFiles": [".github/workflows/go.yml"],
-      "matchPackageNames": ["go"],
+      "matchDepNames": ["go"],
       "enabled": false
     }
   ],
